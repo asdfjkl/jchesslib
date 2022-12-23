@@ -26,7 +26,9 @@
 package io.github.asdfjkl.jchesslib;
 
 /**
- *
+ * Represents an Arrow (i.e. to be drawn on a visual representation of a Board).
+ * The Arrow stores source and target squares as tuples (x,y) with x=file from 0=A ... 7=H
+ * and y=rank from 0 ... 7
  */
 public class Arrow {
 
