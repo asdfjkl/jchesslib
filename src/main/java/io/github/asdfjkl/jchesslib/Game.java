@@ -30,7 +30,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 /**
- *
+ * Class to store Games. This includes both the actual game tree consisting
+ * of GameNode's, as well as meta-information such as the PGN header information
  */
 public class Game {
 
@@ -43,7 +44,8 @@ public class Game {
     private HashMap<String, String> pgnHeaders;
 
     /**
-     *
+     * create a new game. The game will have a root node with
+     * an empty board and no pgn headers.
      */
     public Game() {
         this.root = new GameNode();
@@ -55,12 +57,6 @@ public class Game {
         this.pgnHeaders = new HashMap<String,String>();
     }
 
-    /**
-     * @param positionHash
-     * @param node
-     * @param maxHalfmove
-     * @return
-     */
     private boolean containsPositionRec(long positionHash, GameNode node, int maxHalfmove) {
         if(maxHalfmove <= node.getBoard().halfmoveClock) {
             return false;
@@ -79,10 +75,13 @@ public class Game {
     }
 
     /**
-     * @param positionHash
-     * @param minHalfmove
-     * @param maxHalfmove
-     * @return
+     * Given a position hash (similar to a zobrist hash, but without turn or castling rights
+     * encoded), this functions search the game tree recursively and will return true if
+     * a position appears in the tree
+     * @param positionHash the position to look for
+     * @param minHalfmove search only game nodes that are at least a number of halfmoves from root
+     * @param maxHalfmove search only game nodes that are at most a number of halfmoves from root
+     * @return true if a position was found, false otherwise
      */
     public boolean containsPosition(long positionHash, int minHalfmove, int maxHalfmove) {
         GameNode current = this.getRootNode();
@@ -110,9 +109,12 @@ public class Game {
         return null;
     }
 
-    /**
-     * @param id
-     * @return
+    /** Each node has a unique id associated that is created upon
+     * creating the node. Given an id, find the node in the game tree that
+     * belongs to that id
+     * @param id the id of a node
+     * @return the game node if found, throws {@code IllegalArgumentException}
+     *         if a node with that id does not exist
      */
     public GameNode findNodeById(int id) {
         GameNode current = this.getRootNode();
@@ -134,48 +136,60 @@ public class Game {
         return ids;
     }
 
-    /**
-     * @return
+    /** Get a list of all id's of all nodes that are in the game tree
+     * @return contains all the id's
      */
     public ArrayList<Integer> getAllIds() {
         return getAllIds(getRootNode());
     }
 
     /**
-     * @return
+     * checks if the flag {@code treeWasChanged} is set.
+     * @return true if the flag is set, false otherwise
      */
     public boolean isTreeChanged() {
         return this.treeWasChanged;
     }
 
     /**
-     * @param status
+     * sets the flag {@code treeWasChanged}. This flag can be used
+     * to track changes of the game tree and use the information to re-render
+     * the game tree in a graphical user interface
+     * @param status indicating if tree was changed
      */
     public void setTreeWasChanged(boolean status) {
         this.treeWasChanged = status;
     }
 
     /**
-     * @return
+     * checks if the flag {@code headerWasChanged} is set.
+     * @return true if the flag is set, false otherwise
      */
     public boolean isHeaderChanged() { return headerWasChanged; }
 
     /**
-     * @param state
+     * sets the flag {@code headerWasChanged}. This flag can be used
+     * to track changes of the meta-information of the game and use
+     * that info to re-render the meta-information in a graphical
+     * user interface
+     * @param state indicating if header was changed
      */
     public void setHeaderWasChanged(boolean state) { headerWasChanged = true; }
 
     /**
-     * @param tag
-     * @param value
+     * sets meta-information of the game
+     * @param tag e.g. 'Site'
+     * @param value e.g. 'London'
      */
     public void setHeader(String tag, String value) {
         this.pgnHeaders.put(tag, value);
     }
 
     /**
-     * @param tag
-     * @return
+     * returns meta-information of the game. Will return
+     * empty string if the information is not available
+     * @param tag e.g. 'Site'
+     * @return the value of the tag, e.g. 'London'
      */
     public String getHeader(String tag) {
         String value = this.pgnHeaders.get(tag);
@@ -187,14 +201,15 @@ public class Game {
     }
 
     /**
-     *
+     * reset all meta-information
      */
     public void resetHeaders() {
         this.pgnHeaders = new HashMap<String, String>();
     }
 
     /**
-     * @return
+     * return all meta-information (tags)
+     * @return e.g. ['Site', 'Event', ... ]
      */
     public ArrayList<String> getTags() {
         ArrayList<String> tags = new ArrayList<String>();
@@ -203,20 +218,24 @@ public class Game {
     }
 
     /**
-     * @return
+     * return all meta-information (tag + header)
+     * @return hashmap of key,value e.g. key="Site", value="London"
      */
     public HashMap<String,String> getPgnHeaders() {
         return pgnHeaders;
     }
 
     /**
-     * @param pgnHeaders
+     * set all pgn headers.
+     * @param pgnHeaders must contain keys of tags, and
+     *                   values of tag-values
      */
     public void setPgnHeaders(HashMap<String,String> pgnHeaders) {
         this.pgnHeaders = pgnHeaders;
     }
 
     /**
+     * get the root node of the game
      * @return
      */
     public GameNode getRootNode() {
@@ -224,6 +243,8 @@ public class Game {
     }
 
     /**
+     * get the leaf node of the game (seen from root, traversing
+     * the main variation)
      * @return
      */
     public GameNode getEndNode() {
@@ -235,6 +256,7 @@ public class Game {
     }
 
     /**
+     * return the currently selected node
      * @return
      */
     public GameNode getCurrentNode() {
@@ -242,21 +264,28 @@ public class Game {
     }
 
     /**
-     * @return
+     * return the result of the game
+     * @return one of {code CONSTANTS.RES_*}
      */
     public int getResult() {
         return this.result;
     }
 
     /**
-     * @param r
+     * set the result of the game
+     * @param r one of {code CONSTANTS.RES_*}
      */
     public void setResult(int r) {
         this.result = r;
     }
 
     /**
-     * @param m
+     * apply a move. a new variation is generated, and the currently selected
+     * node is set to newly generated move. If the move already exists, then
+     * the currently selected node is set to the corresponding variation (i.e.
+     * child node). This does not check move legality, and will raise an error.
+     * Check the legality of the move before calling this method
+     * @param m the move to apply
      */
     public void applyMove(Move m) {
         boolean existsChild = false;
@@ -284,21 +313,25 @@ public class Game {
     }
 
     /**
-     * @param newCurrent
+     * sets the currently selected node
+     * @param newCurrent the node to select
      */
     public void setCurrent(GameNode newCurrent) {
         this.current = newCurrent;
     }
 
     /**
-     * @param newRoot
+     * (re)sets the root node of the game
+     * @param newRoot the new root node
      */
     public void setRoot(GameNode newRoot) {
         this.root = newRoot;
     }
 
     /**
-     *
+     * move the currently selected move down to the child node
+     * of the main variation. This has no effect if we are already
+     * at a leaf node
      */
     public void goToMainLineChild() {
         if(this.current.getVariations().size() > 0) {
@@ -307,6 +340,10 @@ public class Game {
     }
 
     /**
+     * move the currently selected move down to the child node
+     * of variation with the supplied index (starting from 0 for
+     * the main variation). No effect, if such a variation does not
+     * exist
      * @param idxChild
      */
     public void goToChild(int idxChild) {
@@ -316,7 +353,8 @@ public class Game {
     }
 
     /**
-     *
+     * move the currently selected node to the parent.
+     * no effect if we are at the root node
      */
     public void goToParent() {
         if(this.current.getParent() != null) {
@@ -325,14 +363,16 @@ public class Game {
     }
 
     /**
-     *
+     * move the currently selected node to the
+     * root node
      */
     public void goToRoot() {
         this.current = this.root;
     }
 
     /**
-     *
+     * move the currently selected node to the leaf
+     * node of the main variation (seen from the root)
      */
     public void goToEnd() {
         GameNode temp = this.root;
@@ -343,7 +383,11 @@ public class Game {
     }
 
     /**
-     * @param node
+     * move the variation of the supplied
+     * game node one up (i.e. variation 2 becomes
+     * variation 1). No effect if the variation
+     * is already the main (0-th) variation
+     * @param node the start of the variation that should be moved up
      */
     public void moveUp(GameNode node) {
         if(node.getParent() != null) {
@@ -358,6 +402,10 @@ public class Game {
     }
 
     /**
+     * move the variation of the supplied
+     * game node one down (i.e. variation 1 becomes
+     * variation 2). No effect if the variation
+     * is already the last variation
      * @param node
      */
     public void moveDown(GameNode node) {
@@ -373,7 +421,11 @@ public class Game {
     }
 
     /**
-     * @param node
+     * remove the variation that with
+     * the supplied game node. This will traverse
+     * the tree up until the start of the variation
+     * that contains the supplied node
+     * @param node the game node where the variation starts.
      */
     public void delVariant(GameNode node) {
         // go up the variation until we
@@ -398,6 +450,7 @@ public class Game {
     }
 
     /**
+     * remove all variations below the one that is supplied
      * @param node
      */
     public void delBelow(GameNode node) {
@@ -407,6 +460,8 @@ public class Game {
 
 
     /**
+     * remove all comments in the supplied game node
+     * and all nodes in all variations below
      * @param node
      */
     public void removeCommentRec(GameNode node) {
@@ -417,14 +472,16 @@ public class Game {
     }
 
     /**
-     *
+     * remove all comments in the game
      */
     public void removeAllComments() {
         this.removeCommentRec(this.getRootNode());
     }
 
     /**
-     *
+     * move the currently selected node down to a leaf
+     * node. This will start from the currently selected
+     * node and always chose the main line
      */
     public void goToLeaf() {
         while(!current.isLeaf()) {
@@ -433,6 +490,9 @@ public class Game {
     }
 
     /**
+     * remove all annotation information (i.e. NAG)
+     * in the supplied node and all nodes of all variations
+     * below
      * @param node
      */
     public void removeAllAnnotationsRec(GameNode node) {
@@ -443,11 +503,14 @@ public class Game {
     }
 
     /**
-     *
+     * remove all annotations (i.e. NAGs) in the game
      */
     public void removeAllAnnotations() { this.removeAllAnnotationsRec(this.getRootNode()); }
 
     /**
+     * reset the game tree, in particular create a new
+     * root node and set the supplied board as the position
+     * of that root
      * @param newRootBoard
      */
     public void resetWithNewRootBoard(Board newRootBoard) {
@@ -463,7 +526,7 @@ public class Game {
     }
 
     /**
-     *
+     * remove all variations of the game, only keep the main line
      */
     public void removeAllVariants() {
         GameNode temp = this.getRootNode();
@@ -479,7 +542,7 @@ public class Game {
     }
 
     /**
-     *
+     * clear the seven mandatory PGN headers
      */
     public void clearHeaders() {
         this.pgnHeaders.clear();
@@ -492,6 +555,8 @@ public class Game {
     }
 
     /**
+     * count the number of halfmoves from the root to
+     * the leaf of the main variation
      * @return
      */
     public int countHalfmoves() {
@@ -505,7 +570,9 @@ public class Game {
     }
 
     /**
-     * @return
+     * checks if a three-fold repetition occurend
+     * inbetween the root and the currently selected node
+     * @return true if a three-fold repetition occurred, false otherwise
      */
     public boolean isThreefoldRepetition() {
 
@@ -526,7 +593,9 @@ public class Game {
     }
 
     /**
-     * @return
+     * checks if there is sufficient material to mate
+     * in the currently selected node
+     * @return true if there is insufficient material, false otherwise
      */
     public boolean isInsufficientMaterial() {
         if (current != null && current.getBoard() != null)

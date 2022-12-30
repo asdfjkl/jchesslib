@@ -23,9 +23,12 @@
  * THE SOFTWARE.
  */
 
-
 package io.github.asdfjkl.jchesslib;
 
+/**
+ * This class defines various static constants - mostly integers - used
+ * throughout the library
+ */
 public class CONSTANTS {
 
     private CONSTANTS() {}
@@ -59,6 +62,10 @@ public class CONSTANTS {
     public static final int BLACK_ANY_PIECE = 0x87;
 
 
+    /**
+     * The empty position. Empty squares are filled with 0=EMPTY,
+     * the fringe of the 12*10 mailbox are filled with 0xff=FRINGE
+     */
     public static final int[] EMPTY_POS =
               { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
                 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
@@ -74,7 +81,9 @@ public class CONSTANTS {
                 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF
               };
 
-    // initial board position
+    /**
+     * encodes the initial position
+     */
     public static final int[] INIT_POS =
              {  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
                 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
@@ -90,7 +99,6 @@ public class CONSTANTS {
                 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF
              };
 
-    // board positions
     public static final int A1 = 21;
     public static final int A2 = 31;
     public static final int A3 = 41;
@@ -163,23 +171,25 @@ public class CONSTANTS {
     public static final int H7 = 88;
     public static final int H8 = 98;
 
-    // attack table
-    // the index of this array corresponds to the distance
-    // between two squares of the board (note the board is
-    // encoded as a one dim array of size 120, where A1 = 21, H1 = 28
-    // A8 = 91, A8 = 98.
-    // the value denotes whether an enemy rook, bishop, knight, queen, king
-    // on one square can attack the other square. The following encoding
-    // is used:
-    // Bitposition    Piece
-    // 0              Knight
-    // 1              Bishop
-    // 2              Rook
-    // 3              Queen
-    // 4              King
-    // e.g. distance one, i.e. index 1 (=left, up, down, right square) has
-    // value 0x1C = MSB 00011100 LSB, i.e. king, queen, rook can
-    // potentially attack
+    /**
+     * attack table
+     * the index of this array corresponds to the distance
+     * between two squares of the board (note the board is
+     * encoded as a one dim array of size 120, where A1 = 21, H1 = 28
+     * A8 = 91, A8 = 98.
+     * the value denotes whether an enemy rook, bishop, knight, queen, king
+     * on one square can attack the other square. The following encoding
+     * is used:
+     * Bitposition    Piece
+     * 0              Knight
+     * 1              Bishop
+     * 2              Rook
+     * 3              Queen
+     * 4              King
+     * e.g. distance one, i.e. index 1 (=left, up, down, right square) has
+     * value 0x1C = MSB 00011100 LSB, i.e. king, queen, rook can
+     * potentially attack
+     */
     public static final int[] ATTACK_TABLE =
              {  0x00, 0x1C, 0x0C, 0x0C, 0x0C, 0x0C, 0x0C, 0x0C, 0x01, 0x1a,
                 0x1C, 0x1A, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0a, 0x01,
@@ -191,11 +201,13 @@ public class CONSTANTS {
                 0x0C, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0A
              };
 
-    // first dim is for different piece types
-    // [piece_type[0] is DCOUNT (as in Byte Magazine paper)
-    // [piece_type[1] ... [piece_type][4] resp.
-    // [piece_type[1] ... [piece_type][8] contain
-    // DPOINT table
+    /**
+     * first dim is for different piece types
+     * [piece_type[0] is DCOUNT (as in Byte Magazine paper)
+     * [piece_type[1] ... [piece_type][4] resp.
+     * [piece_type[1] ... [piece_type][8] contain
+     * DPOINT table
+     */
     public static final int[][] DIR_TABLE =
             {
                 { 4, -10, -20, -11, -9 ,   0,   0,   0,   0 }, // max 4 black pawn directions, rest 0's
@@ -207,24 +219,58 @@ public class CONSTANTS {
                 { 8, +9 , +11, -11, -9 ,   +10, -10, +1, -1 }  // 8 king directions (= queen dir's)
             };
 
-    // indices into the direction table
+    /**
+     * black pawn index into the direction table
+     */
     public static final int IDX_BPAWN = 0;
+    /**
+     * white pawn index into the direction table
+     */
     public static final int IDX_WPAWN = 1;
+    /**
+     * knight (any color) index into the direction table
+     */
     public static final int IDX_KNIGHT = 2;
+    /**
+     * bishop (any color) index into the direction table
+     */
     public static final int IDX_BISHOP = 3;
+    /**
+     * rook (any color) index into the direction table
+     */
     public static final int IDX_ROOK = 4;
+    /**
+     * queen (any color) index into the direction table
+     */
     public static final int IDX_QUEEN = 5;
+    /**
+     * king (any color) index into the direction table
+     */
     public static final int IDX_KING = 6;
 
 
-
-    // players
+    /**
+     * constant for white player
+     */
     public static final boolean WHITE = false;
+    /**
+     * constant for white player (when integer is expected)
+     */
     public static final int IWHITE = 0;
+    /**
+     * constant for black player
+     */
     public static final boolean BLACK = true;
+    /**
+     * constant for black player (when integer is expected)
+     */
     public static final int IBLACK = 1;
 
-    // for zobrist hashing w/ and polyglot opening books
+    // for
+    /**
+     * Polyglot random array for zobrist hashing
+     * and polyglot opening books
+     */
     public static final long[] POLYGLOT_RANDOM_64 = {
                 0x9D39247E33776D41L, 0x2AF7398005AAA5C7L, 0x44DB015024623547L,
                 0x9C15F73E62A76AE2L, 0x75834465489C0C89L, 0x3290AC3A203001BFL,
@@ -489,47 +535,130 @@ public class CONSTANTS {
                 0xF8D626AAAF278509L
     };
 
+    /**
+     * castle value for zobrist hashing
+     */
     public static final int RANDOM_CASTLE = 768;
+    /**
+     * e.p. value for zobrist hashing
+     */
     public static final int RANDOM_EN_PASSENT = 772;
+    /**
+     * turn value for zobrist hashing
+     */
     public static final int RANDOM_TURN = 780;
 
+    /**
+     * constant for game result (undefined)
+     */
     public static final int RES_UNDEF = 0;
+    /**
+     * constant for game result (white wins)
+     */
     public static final int RES_WHITE_WINS = 1;
+    /**
+     * constant for game result (black wins)
+     */
     public static final int RES_BLACK_WINS = 2;
+    /**
+     * constant for game result (draw)
+     */
     public static final int RES_DRAW = 3;
+    /**
+     * constant for game result (any of white, black, drawn or undefined)
+     */
     public static final int RES_ANY = 4;
 
+    /**
+     * NAG null move --
+     */
     public static int NAG_NULL = 0;
+    /**
+     * NAG good move !
+     */
     public static final int NAG_GOOD_MOVE = 1;
-    //A good move. Can also be indicated by ``!`` in PGN notation."""
+    /**
+     * NAG mistake ?
+     */
     public static final int NAG_MISTAKE = 2;
-    //A mistake. Can also be indicated by ``?`` in PGN notation."""
+    /**
+     * NAG brilliant move !!
+     */
     public static final int NAG_BRILLIANT_MOVE = 3;
-    //A brilliant move. Can also be indicated by ``!!`` in PGN notation."""
+    /**
+     * NAG blunder ??
+     */
     public static final int NAG_BLUNDER = 4;
-    //A blunder. Can also be indicated by ``??`` in PGN notation."""
+    /**
+     * NAG speculative move !?
+     */
     public static final int NAG_SPECULATIVE_MOVE = 5;
-    //A speculative move. Can also be indicated by ``!?`` in PGN notation."""
+    /**
+     * NAG dubious move ?!
+     */
     public static final int NAG_DUBIOUS_MOVE = 6;
-    //A dubious move. Can also be indicated by ``?!`` in PGN notation."""
+    /**
+     * NAG forced move □
+     */
     public static int NAG_FORCED_MOVE = 7;
+    /**
+     * NAG drawish position =
+     */
     public static final int NAG_DRAWISH_POSITION = 10;
+    /**
+     * NAG unclear position ∞
+     */
     public static final int NAG_UNCLEAR_POSITION = 13;
+    /**
+     * NAG white has a slight advantage +/=
+     */
     public static final int NAG_WHITE_SLIGHT_ADVANTAGE = 14;
+    /**
+     * NAG black has a slight advantage +/=
+     */
     public static final int NAG_BLACK_SLIGHT_ADVANTAGE = 15;
+    /**
+     * NAG white has moderate advantage ∓
+     */
     public static final int NAG_WHITE_MODERATE_ADVANTAGE = 16;
+    /**
+     * NAG black has moderate advantage ±
+     */
     public static final int NAG_BLACK_MODERATE_ADVANTAGE = 17;
+    /**
+     * NAG white has decisive advantage +-
+     */
     public static final int NAG_WHITE_DECISIVE_ADVANTAGE = 18;
+    /**
+     * NAG black has decisive advantage -+
+     */
     public static final int NAG_BLACK_DECISIVE_ADVANTAGE = 19;
+    /**
+     * NAG white is in zugzwang ⨀
+     */
     public static int NAG_WHITE_ZUGZWANG = 22;
+    /**
+     * NAG black is in zugzwang ⨀
+     */
     public static int NAG_BLACK_ZUGZWANG = 23;
+    /**
+     * NAG white has an attack →
+     */
     public static int NAG_WHITE_HAS_ATTACK = 40;
+    /**
+     * NAG black has an attack →
+     */
     public static int NAG_BLACK_HAS_ATTACK = 41;
+    /**
+     * NAG white has moderate counterplay ⇆
+     */
     public static int NAG_WHITE_MODERATE_COUNTERPLAY = 132;
+    /**
+     * NAG black has moderate counterplay ⇆
+     */
     public static int NAG_BLACK_MODERATE_COUNTERPLAY = 133;
 
 
-    // tokens for move parsing
     public static int TKN_ERROR = -1;
     public static final int TKN_PAWN_MOVE = 1;
     public static final int TKN_CASTLE = 2;
