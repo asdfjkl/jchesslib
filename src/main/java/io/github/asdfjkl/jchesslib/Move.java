@@ -25,6 +25,9 @@
 
 package io.github.asdfjkl.jchesslib;
 
+/**
+ * represents chess moves
+ */
 public class Move {
 
     int from;
@@ -32,6 +35,13 @@ public class Move {
     int promotionPiece;
     boolean isNullMove;
 
+    /**
+     * create a new move. Source and destination must
+     * be in the internal format (absolute offset in the 120=12x10
+     * mailbox format)
+     * @param from source square
+     * @param to destination square
+     */
     public Move(int from, int to) {
 
         this.from = from;
@@ -41,6 +51,16 @@ public class Move {
 
     }
 
+    /**
+     * create a new Move. Source square is given as (x,y) with
+     * column = x, and row = y. Same for destination square.
+     * Counting starts from zero, i.e. 0=a,...,7=h, and
+     * 0=row 1,...,7=row 8
+     * @param fromColumn source column
+     * @param fromRow source row
+     * @param toColumn target column
+     * @param toRow target row
+     */
     public Move(int fromColumn, int fromRow, int toColumn, int toRow) {
 
         this.from = ((fromRow + 2) * 10) + (fromColumn + 1);
@@ -50,6 +70,9 @@ public class Move {
 
     }
 
+    /**
+     * create a null move
+     */
     public Move() {
 
         this.from = 0;
@@ -59,6 +82,15 @@ public class Move {
 
     }
 
+    /**
+     * create a new move that promotes. Source and destination must
+     * be in the internal format (absolute offset in the 120=12x10
+     * mailbox format).
+     * @param from source square
+     * @param to destination square
+     * @param promotionPiece piece must be one of e.g. {@code CONSTANTS.KNIGHT}, i.e.
+     *                       no color encoding, just the piece type
+     */
     public Move(int from, int to, int promotionPiece) {
 
         this.from = from;
@@ -67,6 +99,17 @@ public class Move {
 
     }
 
+    /**
+     * reate a new move that promotes. Source square is given as (x,y) with
+     *      * column = x, and row = y. Same for destination square.
+     *      * Counting starts from zero, i.e. 0=a,...,7=h, and
+     *      * 0=row 1,...,7=row 8.
+     * @param fromColumn source column
+     * @param fromRow source row
+     * @param toColumn target column
+     * @param toRow target row
+     * @param promotionPiece must be one of 'N', 'B', 'R', or 'Q'
+     */
     public Move(int fromColumn, int fromRow, int toColumn, int toRow, char promotionPiece) {
 
         this.from = ((fromRow + 2) * 10) + (fromColumn + 1);
@@ -92,14 +135,27 @@ public class Move {
 
     }
 
+    /**
+     * set the promotion piece
+     * @param promotionPiece piece must be one of e.g. {@code CONSTANTS.KNIGHT}, i.e.
+     *                       no color encoding, just the piece type
+     */
     public void setPromotionPiece(int promotionPiece) {
         this.promotionPiece = promotionPiece;
     }
 
+    /**
+     * get the source square (absolute 120=12x10 mailbox coordinate)
+     * @return
+     */
     public int getMoveSourceSquare() {
         return from;
     }
 
+    /**
+     * get the target square (absolute 120=12x10 mailbox coordinate)
+     * @return
+     */
     public int getMoveTargetSquare() {
         return to;
     }
@@ -126,6 +182,10 @@ public class Move {
     }
 
 
+    /**
+     * create a new move from a uci string
+     * @param uci
+     */
     public Move(String uci) {
 
         if (!(uci.length() == 4 || uci.length() == 5)) {
@@ -165,6 +225,10 @@ public class Move {
 
     }
 
+    /**
+     * return a uci string of the current move
+     * @return
+     */
     public String getUci() {
 
         if (this.isNullMove) {
@@ -197,6 +261,9 @@ public class Move {
         }
     }
 
+    /**
+     * return a uci string of the current move
+     */
     @Override
     public String toString() {
         return this.getUci();

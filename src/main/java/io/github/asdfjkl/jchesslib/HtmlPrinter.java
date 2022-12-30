@@ -28,6 +28,9 @@ package io.github.asdfjkl.jchesslib;
 
 import java.util.ArrayList;
 
+/**
+ * render a html representation of the game
+ */
 public class HtmlPrinter {
 
     StringBuilder html;
@@ -36,6 +39,9 @@ public class HtmlPrinter {
     boolean forceMoveNumber;
     boolean newLine;
 
+    /**
+     * create a new html printer and init all values
+     */
     public HtmlPrinter() {
         this.html = new StringBuilder();
         this.currentLine = new StringBuilder();
@@ -44,6 +50,10 @@ public class HtmlPrinter {
         this.newLine = false;
     }
 
+    /**
+     * each timer after printing a game, call this
+     * method to reset internal helper variables
+     */
     private void reset() {
         this.html = new StringBuilder();
         this.currentLine = new StringBuilder();
@@ -318,6 +328,11 @@ public class HtmlPrinter {
         }
     }
 
+    /**
+     * render a html representation of the supplied game
+     * @param g the game for which a html representation is desired
+     * @return html formatted string
+     */
     public String printGame(Game g) {
 
         this.reset();

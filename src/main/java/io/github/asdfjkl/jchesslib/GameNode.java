@@ -29,6 +29,9 @@ package io.github.asdfjkl.jchesslib;
 import java.util.ArrayList;
 import java.util.Collections;
 
+/**
+ * represents a node of a game tree
+ */
 public class GameNode {
 
     static int id;
@@ -336,7 +339,8 @@ public class GameNode {
 
     /**
      * remove NAGs (numeric annotation glyphs) within
-     * a specified range >= start and <= stop
+     * a specified range greater or equal to start and
+     * smaller or equal to stop
      * @param start starting value of the range
      * @param stop stop value of the range
      */
