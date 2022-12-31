@@ -32,6 +32,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 
+/**
+ * render a PGN representation of the game
+ */
 public class PgnPrinter {
 
     StringBuilder pgn;
@@ -39,6 +42,9 @@ public class PgnPrinter {
     int variationDepth;
     boolean forceMoveNumber;
 
+    /**
+     * create a new PGN printer and init all values
+     */
     public PgnPrinter() {
         this.pgn = new StringBuilder();
         this.currentLine = new StringBuilder();
@@ -209,6 +215,11 @@ public class PgnPrinter {
         }
     }
 
+    /**
+     * render a PGN representation of the supplied game
+     * @param g the game for which a PGN representation is desired
+     * @return PGN formatted string
+     */
     public String printGame(Game g) {
 
         this.reset();
@@ -231,6 +242,12 @@ public class PgnPrinter {
         return this.pgn.toString();
     }
 
+    /**
+     * render a PGN representation of the supplied game
+     * and directly write that to a file
+     * @param g the game for which a PGN representation is desired
+     * @param filename filename of the desired PGN
+     */
     public void writeGame(Game g, String filename) {
 
         BufferedWriter out = null;

@@ -50,10 +50,6 @@ public class HtmlPrinter {
         this.newLine = false;
     }
 
-    /**
-     * each timer after printing a game, call this
-     * method to reset internal helper variables
-     */
     private void reset() {
         this.html = new StringBuilder();
         this.currentLine = new StringBuilder();

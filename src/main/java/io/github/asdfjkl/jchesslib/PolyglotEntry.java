@@ -26,11 +26,29 @@
 
 package io.github.asdfjkl.jchesslib;
 
+/**
+ * simple wrapper for polyglot book entries
+ */
 public class PolyglotEntry {
 
-    long key;
-    int move;
-    int weight;
-    int learn;
-    String uci;
+    /**
+     * 64 bit of the position (zobrist hash)
+     */
+    public long key;
+    /**
+     * 16 bit value encoding a move
+     */
+    public int move;
+    /**
+     * 16 bit weight value according to Polyglot spec.
+     */
+    public int weight;
+    /**
+     * 32 bit learning parameter according to Polyglot spec.
+     */
+    public int learn;
+    /**
+     * uci representation of the move (e.g. b2b1Q)
+     */
+    public String uci;
 }

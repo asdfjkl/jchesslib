@@ -32,17 +32,48 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 
+/*
+ * PolyglotExt is a simple bookformat
+ * of consecutive entries of 18 bytes each using
+ * a similar encoding as the original Polyglot.
+ * Other information about the position are stored
+ * however, mostly statistics that may be useful
+ * for training and opening preparation
+ *
+ * entries are stored in ascending order w.r.t.
+ * the zobrist hash; i.e. same as polyglot,
+ * but weights, learn etc. replaced by different data fields
+ * moves are encoded the same as in polyglot
+
+ * A Polyglot Ext Entry (18 byte total):
+ * <pre>
+ | Data Type   |    Entry    |  no. of bytes |
+ |-------------|-------------|---------------|
+ | uint64      | zobrist     |          8    |
+ | uint16      | move        |          2    |
+ | uint32      | count       |          4    |
+ | uint8       | white win percentage | 1    |
+ | uint8       | black win percentage | 1    |
+ | uint16      | average elo          | 2    |
+ *</pre>
+ */
 public class PolyglotExt {
 
     byte[] book;
+    /**
+     * flag to check if a book has already been loaded
+     */
     public boolean readFile = false;
     final char[] promotionPieces = { ' ', 'n', 'b', 'r', 'q'};
 
+    /**
+     * load an extended Polyglot book into memory
+     * @param file filename of the book
+     */
     public void loadBook(File file) {
 
         OptimizedRandomAccessFile raf = null;
         try {
-            //File file = new File(filename);
             long fileLength = file.length();
             raf = new OptimizedRandomAccessFile(file, "r");
             book = new byte[(int) fileLength];
@@ -61,6 +92,11 @@ public class PolyglotExt {
         }
     }
 
+    /**
+     * given an offset into the file, read an entry of the book
+     * @param offset offset into the file
+     * @return entry of the book
+     */
     public PolyglotExtEntry getEntryFromOffset(int offset) {
 
         if (book == null || offset > book.length - 18) {
@@ -141,12 +177,22 @@ public class PolyglotExt {
         return e;
     }
 
+    /**
+     * find all entries for the position of the supplied board
+     * @param board board with the position in question
+     * @return ArrayList of PolyglotExt entries
+     */
     public ArrayList<PolyglotExtEntry> findEntries(Board board) {
 
         long zobrist = board.getZobrist();
         return findEntries(zobrist);
     }
 
+    /**
+     * find all entries for the position of the supplied zobrist hash
+     * @param zobrist position encoded as zobrist hash
+     * @return ArrayList of PolyglotExt entries
+     */
     public ArrayList<PolyglotExtEntry> findEntries(long zobrist) {
 
         ArrayList<PolyglotExtEntry> bookEntries = new ArrayList<>();
@@ -186,6 +232,11 @@ public class PolyglotExt {
         return bookEntries;
     }
 
+    /**
+     * checks if the position of the supplied board is in the book
+     * @param board board with the position
+     * @return true if at least one entry is found, false otherwise
+     */
     public boolean inBook(Board board) {
 
         long zobrist = board.getZobrist();
@@ -193,6 +244,11 @@ public class PolyglotExt {
 
     }
 
+    /**
+     * checks if the position of the supplied zobrist hash is in the book
+     * @param zobrist hash with the position
+     * @return true if at least one entry is found, false otherwise
+     */
     public boolean inBook(long zobrist) {
 
         if(!readFile) {
@@ -230,12 +286,14 @@ public class PolyglotExt {
         return false;
     }
 
-    /*
-      for given zobrist, get all stored moves from the
-      book and select a random move from the possible choices.
-      Return null if there is no move. The random
-      choice has a bias w.r.t. the number of times a move
-      has been played (popular moves are preferred)
+    /**
+     * for given zobrist, get all stored moves from the
+     * book and select a random move from the possible choices.
+     * Return null if there is no move. The random
+     * choice has a bias w.r.t. the number of times a move
+     * has been played (popular moves are preferred)
+     * @param zobrist the position in question
+     * @return a random move, encoded as a uci string
      */
     public String getRandomMove(long zobrist) {
 

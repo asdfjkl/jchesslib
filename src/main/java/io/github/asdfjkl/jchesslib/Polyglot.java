@@ -32,12 +32,22 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 
+/**
+ * reads opening books encoded to the Polyglot specification
+ */
 public class Polyglot {
 
     byte[] book;
+    /**
+     * flag to check if a book has already been loaded
+     */
     public boolean readFile = false;
     final char[] promotionPieces = { ' ', 'n', 'b', 'r', 'q'};
 
+    /**
+     * load a polyglot opening book
+     * @param file filename of the book
+     */
     public void loadBook(File file) {
 
         OptimizedRandomAccessFile raf = null;
@@ -61,6 +71,11 @@ public class Polyglot {
         }
     }
 
+    /**
+     * given an offset into the file, read an entry of the book
+     * @param offset offset into the file
+     * @return entry of the book
+     */
     public PolyglotEntry getEntryFromOffset(int offset) {
 
         if (book == null || offset > book.length - 16) {
@@ -133,12 +148,24 @@ public class Polyglot {
         return e;
     }
 
+    /**
+     * find book moves for a given board
+     * @param board the board in question
+     * @return an ArrayList of move-strings encoded in uci format
+     * (e.g. b2b1Q)
+     */
     public ArrayList<String> findMoves(Board board) {
 
         long zobrist = board.getZobrist();
         return findMoves(zobrist);
     }
 
+    /**
+     * find book moves for a given zobrist hash
+     * @param zobrist the position in question
+     * @return an ArrayList of move-strings encoded in uci format
+     * (e.g. b2b1Q)
+     */
     public ArrayList<String> findMoves(long zobrist) {
 
         ArrayList<String> bookMoves = new ArrayList<String>();
@@ -177,6 +204,12 @@ public class Polyglot {
         return bookMoves;
     }
 
+    /**
+     * checks if the position of the supplied board
+     * is within the book
+     * @param board the board in question
+     * @return true if at least one entry is found, false otherwise
+     */
     public boolean inBook(Board board) {
 
         long zobrist = board.getZobrist();
@@ -184,6 +217,12 @@ public class Polyglot {
 
     }
 
+    /**
+     * checks if the position encoded by the supplied zobrist hash
+     * is within the book
+     * @param zobrist the position in question
+     * @return true if at least one entry is found, false otherwise
+     */
     public boolean inBook(long zobrist) {
 
         if(!readFile) {

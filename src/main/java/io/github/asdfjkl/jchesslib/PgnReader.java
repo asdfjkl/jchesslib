@@ -33,6 +33,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Stack;
 
+/**
+ * read PGN files
+ */
 public class PgnReader {
 
     GameNode currentNode = null;
@@ -41,21 +44,45 @@ public class PgnReader {
     final Stack<GameNode> gameStack;
     String encoding;
 
+    /**
+     * create a new PGN reader and init all values
+     */
     public PgnReader() {
         gameStack = new Stack<>();
          this.encoding = "UTF-8";
     }
 
+    /**
+     * set the encoding that is used during PGN parsing to UTF-8.
+     * This technically violates the PGN specification, but most
+     * PGN's nowadays are encoded as UTF-8
+     */
     public void setEncodingUTF8() {
         this.encoding = "UTF-8";
     }
 
+    /**
+     * set the encoding that is used during PGN parsing to IsoLatin1
+     * This is the encoding standard defined in the PGN specification,
+     * but does not handle non-european languages
+     */
     public void setEncodingIsoLatin1() {
         this.encoding = "ISO-8859-1";
     }
 
+    /**
+     * get the currently set encoding of the PGN reader
+     * @return
+     */
     public String getEncoding() { return encoding; }
 
+    /**
+     * This function uses <tt>com.ibm.icu.text.CharsetDetector</tt>
+     * to heuristically detect if a PGN file is encoded in
+     * IsoLatin1
+     * @param filename filename of the PGN
+     * @return true if encoded in IsoLatin1, false otherwise
+     */
     public boolean isIsoLatin1(String filename) {
 
         boolean isLatin1 = false;
@@ -101,6 +128,11 @@ public class PgnReader {
         return isLatin1;
     }
 
+    /**
+     * scan a PGN file and get an ArrayList of PgnItems
+     * @param filename filename of the PGN
+     * @return PgnItems for all games in the file
+     */
     ArrayList<PgnItem> scanPgnGetSTR(String filename) {
 
         ArrayList<PgnItem> entries = new ArrayList<>();
@@ -184,7 +216,12 @@ public class PgnReader {
         return entries;
     }
 
-
+    /**
+     * quickly scan a PGN file and get file offsets for
+     * all stored games
+     * @param filename filename of the PGN
+     * @return PgnItems for all games in the file
+     */
     public ArrayList<Long> scanPgn(String filename) {
 
         ArrayList<Long> offsets = new ArrayList<>();
@@ -236,6 +273,13 @@ public class PgnReader {
         return offsets;
     }
 
+    /**
+     * provided with an offset, this function seeks to that offset, reads
+     * all tags of the game and returns them as a HashMap of tag and value.
+     * @param filename filename of the PGN
+     * @param offset (valid) offset within the file
+     * @return hashmap of tag and value
+     */
     public HashMap<String, String> readSingleHeader(String filename, long offset) {
 
         OptimizedRandomAccessFile raf = null;
@@ -261,7 +305,13 @@ public class PgnReader {
         }
     }
 
-
+    /**
+     * provided with an offset, this function seeks to that offset, reads
+     * all tags of the game and returns them as a HashMap of tag and value.
+     * @param raf a handle for a file already opened for fast random access
+     * @param offset (valid) offset within the file
+     * @return hashmap of tag and value
+     */
     public HashMap<String, String> readSingleHeader(OptimizedRandomAccessFile raf, long offset) {
 
         HashMap<String, String> header = new HashMap<>();
@@ -791,6 +841,15 @@ public class PgnReader {
         return CONSTANTS.TKN_EOL;
     }
 
+    /**
+     * Provided with a handle of a PGN that is opened for random access,
+     * this function finds the first found, parses the PGN representation
+     * and returns the game. If you want to read a specific game within a file,
+     * first use the seek method of <tt>OptimizedRandomAccess</tt>
+     * to seek to the position of the game in question.
+     * @param raf the handle of the file
+     * @return parsed game
+     */
     public Game readGame(OptimizedRandomAccessFile raf) {
 
         currentLine = "";
@@ -1023,7 +1082,11 @@ public class PgnReader {
         return g;
     }
 
-
+    /**
+     * parses a game from a PGN string
+     * @param gameString PGN formatted string
+     * @return the parsed game
+     */
     public Game readGame(String gameString) {
 
         String[] lines = gameString.split("\n");
