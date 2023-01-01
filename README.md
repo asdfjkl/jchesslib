@@ -279,7 +279,7 @@ try {
 
 ## Performance
 
-jchesslib is not optimized for fast move generation. It can quickly
+jchesslib is not optimized for fast move generation and is embarrassingly slow. It can quickly
 parse PGN's and is probably fast enough for a weak chess-engine, but 
 cannot remotely compete with e.g. Stockfish. Some benchmarks:
 
