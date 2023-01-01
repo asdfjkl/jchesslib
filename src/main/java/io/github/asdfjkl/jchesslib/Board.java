@@ -906,6 +906,8 @@ public class Board {
      * prior applying the last Move. Undo is only available once, i.e.
      * a sequence apply() -> undo() -> apply() -> undo() is possible, but
      * apply() -> apply() -> undo() -> undo() will throw an IllegalArgumentException
+     * Some other functions, like move generation destroy the ability to undo a move.
+     * Always check isUndoAvailable() before calling undo()!
      */
     public void undo() {
         if(!this.undoAvailable) {
@@ -1619,15 +1621,22 @@ public class Board {
         for(int i=21;i<99;i++) {
             if(this.board[i] != CONSTANTS.EMPTY && this.board[i] != CONSTANTS.FRINGE) {
                 if(this.getPieceTypeAt(i) == CONSTANTS.KING && this.getPieceColorAt(i) == this.turn) {
+                    System.out.println("undo avail4"+this.undoAvailable);
+
                     if(this.isAttacked(i, !this.turn)) {
+                        System.out.println("undo avail5"+this.undoAvailable);
+
                         ArrayList<Move> legals = this.legalMoves();
+                        System.out.println("undo avail3"+this.undoAvailable);
                         return legals.size() == 0;
                     } else{
+                        System.out.println("undo avail1"+this.undoAvailable);
                         return false;
                     }
                 }
             }
         }
+        System.out.println("undo avail2"+this.undoAvailable);
         return false;
     }
 
