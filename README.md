@@ -23,7 +23,7 @@ Javadoc for jchess lib is [here](http://...)
 ### Board Creation and Moves
 
 Scholar's mate:
-````
+````Java
 Board board = new Board(true);
 Move m1 = new Move("e2e4");
 Move m2 = new Move("e7e5");
@@ -43,14 +43,14 @@ board.apply(m7);
 
 System.out.println(board.isCheckmate());
 >> true
-````        
+````     
 
 ### Make and Unmake Moves
 
 Some functions change the board state so that undo is not possible anymore. 
 Always call `isUndoAvailable` before undoing a move:
 
-````
+````Java
 Board board = new Board(true);
 Move m1 = new Move("e2e4");
 board.apply(m1);
@@ -63,7 +63,7 @@ try {
 
 ### Print an ASCII Board
 
-````
+````Java
 Board board = new Board(true);
 System.out.println(board);
 
@@ -79,7 +79,7 @@ System.out.println(board);
 
 ### Parse and create FEN strings
 
-````
+````Java
 Board board = new Board("rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1");
 Move m = new Move("e7e5");
 board.apply(m);
@@ -90,7 +90,7 @@ System.out.println(board.fen());
 
 ### Detect Checkmate, Stalemate and Draw
 
-````
+````Java
 Board board = new Board(true);
 board.isStalemate();
 board.isCheckmate();
@@ -99,7 +99,7 @@ board.isInsufficientMaterial();
 
 ### Detects repetitions
 
-````
+````Java
 Game game = new Game();
 Board board = new Board(true);
 game.getRootNode().setBoard(board);
@@ -110,7 +110,7 @@ game.isThreefoldRepetition();
 
 Scan a PGN and get file offsets of all games
 
-````
+````Java
 String millbase = "/home/user/millionbase-2.22.pgn";
 PgnReader reader = new PgnReader();
 if(reader.isIsoLatin1(millbase)) {
@@ -121,7 +121,7 @@ ArrayList<Long> offsets = reader.scanPgn(millbase);
 
 Then seek to an offset and read the game
 
-````
+````Java
 try {
     raf = new OptimizedRandomAccessFile(millbase, "r");
     offset = offsets.get(10);
@@ -134,7 +134,7 @@ try {
 
 Scan a PGN and get header information and file offsets of all games
 
-````
+````Java
 String millbase = "/home/user/millionbase-2.22.pgn";
 PgnReader reader = new PgnReader();
 if(reader.isIsoLatin1(millbase)) {
@@ -147,7 +147,7 @@ System.out.println("White: "+entry.getWhite());
 
 Then seek to an offset and read the game
 
-````
+````Java
 try {
     raf = new OptimizedRandomAccessFile(millbase, "r");
     PgnItem entry = entries.get(10):
@@ -161,7 +161,7 @@ try {
 
 Read the first game in a PGN
 
-````
+````Java
 String filename = "/home/user/game.pgn";
 OptimizedRandomAccessFile raf = null;
 PgnReader reader = new PgnReader();
@@ -178,7 +178,7 @@ try {
 
 Reading a PGN from a string:
 
-````
+````Java
 String s = "[Event \"Berlin\"]\n" +
         "[Site \"Berlin GER\"]\n" +
         "[Date \"1852.??.??\"]\n" +
@@ -206,7 +206,7 @@ Game g = reader.readGame(s);
 
 Writing a PGN to a file or to a String:
 
-````
+````Java
 Game g = new Game();
 g.setHeader("Event", "Training");
 g.setHeader("Site", "Paris");
@@ -240,7 +240,7 @@ printer.writeGame(g, "temp.pgn");
 
 Reading a Polyglot book. PolyglotExt books work similar.
 
-````
+````Java
 Polyglot pg = new Polyglot();
 
 File file = null;
