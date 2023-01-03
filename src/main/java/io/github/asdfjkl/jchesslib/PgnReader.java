@@ -77,7 +77,7 @@ public class PgnReader {
     public String getEncoding() { return encoding; }
 
     /**
-     * This function uses <tt>com.ibm.icu.text.CharsetDetector</tt>
+     * This function uses com.ibm.icu.text.CharsetDetector
      * to heuristically detect if a PGN file is encoded in
      * IsoLatin1
      * @param filename filename of the PGN
@@ -845,7 +845,7 @@ public class PgnReader {
      * Provided with a handle of a PGN that is opened for random access,
      * this function finds the first found, parses the PGN representation
      * and returns the game. If you want to read a specific game within a file,
-     * first use the seek method of <tt>OptimizedRandomAccess</tt>
+     * first use the seek method of OptimizedRandomAccess
      * to seek to the position of the game in question.
      * @param raf the handle of the file
      * @return parsed game
