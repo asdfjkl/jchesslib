@@ -904,8 +904,8 @@ public class Board {
     /**
      * Undoes the last applied Move and resets the Board to the state
      * prior applying the last Move. Undo is only available once, i.e.
-     * a sequence apply() -> undo() -> apply() -> undo() is possible, but
-     * apply() -> apply() -> undo() -> undo() will throw an IllegalArgumentException
+     * a sequence apply() - undo() - apply() - undo() is possible, but
+     * apply() - apply() - undo() - undo() will throw an IllegalArgumentException
      * Some other functions, like move generation destroy the ability to undo a move.
      * Always check isUndoAvailable() before calling undo()!
      */
