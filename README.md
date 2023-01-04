@@ -279,16 +279,23 @@ try {
 
 ## Performance
 
-jchesslib is not optimized for fast move generation and is embarrassingly slow. It can quickly
-parse PGN's and is probably fast enough for a weak chess-engine, but 
-cannot remotely compete with e.g. Stockfish. Some benchmarks:
+jchesslib is not optimized for fast move generation, especially legal (not pseudo-legal) 
+move generation is slow. It has reasonable performance to process large PGN files. 
+Some benchmarks:
 
 | Library                | Perft 6 (ms) |
 |------------------------|:------------:|
 | Stockfish 14.1         |    0.572     |
 | jchesslib              |      72      |
 | python-chess (cpython) |     238      |
-| python-chess (pypy)    |      54      |
+
+Processing a large (1.3 GB) PGN File:
+
+| Library                | seconds      |
+|------------------------|:------------:|
+| scan PGN for game offsets  |    4    |
+| read all games        |      171      |
+| read all games and write to another file  |     729      |
 
 
 ## License
