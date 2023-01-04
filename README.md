@@ -16,7 +16,7 @@ Install via [Maven](https://mvnrepository.com) or download the jar [here](http:/
 
 ## Documentation
 
-Javadoc for jchess lib is [here](http://...)
+Javadoc for jchess lib is [here](https://asdfjkl.github.io/jchesslib/)
 
 ## Examples
 
