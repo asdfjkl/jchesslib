@@ -34,6 +34,7 @@ package io.github.asdfjkl.jchesslib;
 import java.awt.Point;
 import java.util.ArrayList;
 import java.lang.Math;
+import java.util.Arrays;
 
 /**
  * This class represents a current position including all
@@ -62,6 +63,10 @@ public class Board {
 
     private int[] board;
     private int[] oldBoard;
+    // dim [2][7][10]
+    // first dim.: IWHITE / IBLACK
+    // second dim: CONSTANTS.PAWN, ..KING, QUEEN...
+    // third dim.: idx of board or EMPTY
     private int[][][] pieceList;
 
     private long zobristHash;
@@ -1311,6 +1316,80 @@ public class Board {
                 && (this.getPieceTypeAt(idx+9)==CONSTANTS.PAWN)) {
             return true;
         }
+
+        boolean newWayResult = false;
+        //System.out.println("piecelist king "+ Arrays.toString(pieceList[IOwnColor][CONSTANTS.KING]));
+        // check if knight attacks
+        for(int i=1;i<CONSTANTS.DIR_TABLE[CONSTANTS.KNIGHT][0]+1;i++) {
+            //System.out.println(this);
+            //System.out.println("sqpos: "+ idx);
+            //System.out.println("dir table entry knight: "+CONSTANTS.DIR_TABLE[CONSTANTS.KNIGHT][i]);
+            int sqOffset = idx + CONSTANTS.DIR_TABLE[CONSTANTS.KNIGHT][i];
+            int sq = board[sqOffset];
+            if(sq != 0xFF && sq != CONSTANTS.EMPTY) {
+                int pieceType = this.getPieceTypeAt(sqOffset);
+                boolean pieceColor = this.getPieceColorAt(sqOffset);
+                if (pieceType == CONSTANTS.KNIGHT && pieceColor == attacker_color) {
+                    return true;
+                    //newWayResult = true;
+                }
+            }
+        }
+        // check if other king attacks
+        for(int i=1;i<CONSTANTS.DIR_TABLE[CONSTANTS.KING][0]+1;i++) {
+            //System.out.println(this);
+            //System.out.println("sqpos: "+ idx);
+            //System.out.println("dir table entry knight: "+CONSTANTS.DIR_TABLE[CONSTANTS.KNIGHT][i]);
+            int sqOffset = idx + CONSTANTS.DIR_TABLE[CONSTANTS.KING][i];
+            int sq = board[sqOffset];
+            if(sq != 0xFF && sq != CONSTANTS.EMPTY) {
+                int pieceType = this.getPieceTypeAt(sqOffset);
+                boolean pieceColor = this.getPieceColorAt(sqOffset);
+                if (pieceType == CONSTANTS.KING && pieceColor == attacker_color) {
+                    return true;
+                    //newWayResult = true;
+                }
+            }
+        }
+
+        // check sliders
+        int[] sliders = { CONSTANTS.QUEEN, CONSTANTS.BISHOP, CONSTANTS.ROOK };
+        // for each slider
+        for ( int slider : sliders ) {
+            int noDirections = CONSTANTS.DIR_TABLE[slider][0];
+            // for each possible direction (i.e. north, northwest, ...)
+            // that the slider can take
+            for(int i=1;i<noDirections+1;i++) {
+                int direction = CONSTANTS.DIR_TABLE[slider][i];
+                // move along the direction (ray), at most
+                // seven times
+                for(int j=1;j<8;j++) {
+                    int offset = idx + (direction * j);
+                    // if in fringe, stop
+                    if(board[offset] == 0xFF) {
+                        break;
+                    }
+                    // if empty, move further along the ray
+                    if(board[offset] == CONSTANTS.EMPTY) {
+                        continue;
+                    }
+                    int pieceTypeAtSq = this.getPieceTypeAt(offset);
+                    boolean pieceColorAtSq = this.getPieceColorAt(offset);
+                    if(pieceTypeAtSq == slider && pieceColorAtSq == attacker_color) {
+                        return true;
+                        //newWayResult = true;
+                    } else {
+                        // here the square cannot be empty (otherwise the above if-cond would trigger)
+                        // therefore there must be another piece, either any piece of the current player
+                        // or a non-slider of the attacker. This piece blocks this ray direction.
+                        break;
+                    }
+                }
+            }
+        }
+
+        /*
+        boolean oldWayResult = false;
         // check all squares (except idx itself)
         // for potential attackers
         for(int i=21;i<99;i++) {
@@ -1337,13 +1416,29 @@ public class Board {
                         ArrayList<Move> targets = this.pseudoLegalMoves(i, CONSTANTS.ANY_SQUARE, CONSTANTS.ANY_PIECE, false, attacker_color);
                         for(int j=0;j<targets.size();j++) {
                             if(targets.get(j).to == idx) {
-                                return true;
+                                //return true;
+                                oldWayResult = true;
                             }
                         }
                     }
                 }
             }
         }
+        if(oldWayResult != newWayResult) {
+            System.out.println("Problem: in this position wrong result: ");
+            System.out.println(this);
+            System.out.println(this.fen());
+            System.out.println("to idx: "+idx);
+            if(attacker_color == CONSTANTS.WHITE) {
+                System.out.println("attacker is white");
+            } else {
+                System.out.println("attacker is black");
+            }
+            System.out.println("old result says: "+oldWayResult);
+            System.out.println("new result says: "+newWayResult);
+            System.out.println();
+
+        }*/
         return false;
     }
 
@@ -1403,6 +1498,125 @@ public class Board {
         // first find color of mover
         boolean color = this.getPieceColorAt(m.from);
         // find king with that color
+        int iColor = CONSTANTS.IBLACK;
+        if(color == CONSTANTS.WHITE) {
+            iColor = CONSTANTS.IWHITE;
+        }
+        int i = pieceList[iColor][CONSTANTS.KING][0];
+
+
+                    // if the move is not by the king
+                    if (i != m.from) {
+                        // apply the move, check if king is attacked, and decide
+                        //boolean legal = false;
+                        //Board b_temp = this.makeCopy();
+                        this.apply(m);      // note: if we do not copy here (performance) then legals() destorys our undo!
+                        boolean legal = !this.isAttacked(i, !color);
+                        this.undo();
+                        return legal;
+                    } else {
+                        // means we move the king
+                        // first check castle cases
+                        if (this.isCastlesWking(m)) {
+                            if (!this.isAttacked(CONSTANTS.E1, CONSTANTS.BLACK)
+                                    && !this.isAttacked(CONSTANTS.F1, CONSTANTS.BLACK)
+                                    && !this.isAttacked(CONSTANTS.G1, CONSTANTS.BLACK)) {
+                                //this.apply(m);
+                                this.board[CONSTANTS.H1] = CONSTANTS.EMPTY;
+                                this.board[CONSTANTS.E1] = CONSTANTS.EMPTY;
+                                this.board[CONSTANTS.G1] = CONSTANTS.WHITE_KING;
+                                this.board[CONSTANTS.F1] = CONSTANTS.WHITE_ROOK;
+                                boolean legal = !this.isAttacked(CONSTANTS.G1, CONSTANTS.BLACK);
+                                //this.undo();
+                                this.board[CONSTANTS.H1] = CONSTANTS.WHITE_ROOK;
+                                this.board[CONSTANTS.E1] = CONSTANTS.WHITE_KING;
+                                this.board[CONSTANTS.G1] = CONSTANTS.EMPTY;
+                                this.board[CONSTANTS.F1] = CONSTANTS.EMPTY;
+                                return legal;
+                            } else {
+                                return false;
+                            }
+                        }
+                        if (this.isCastlesBking(m)) {
+                            if (!this.isAttacked(CONSTANTS.E8, CONSTANTS.WHITE)
+                                    && !this.isAttacked(CONSTANTS.F8, CONSTANTS.WHITE)
+                                    && !this.isAttacked(CONSTANTS.G8, CONSTANTS.WHITE)) {
+                                //this.apply(m);
+                                this.board[CONSTANTS.H8] = CONSTANTS.EMPTY;
+                                this.board[CONSTANTS.E8] = CONSTANTS.EMPTY;
+                                this.board[CONSTANTS.G8] = CONSTANTS.BLACK_KING;
+                                this.board[CONSTANTS.F8] = CONSTANTS.BLACK_ROOK;
+                                boolean legal = !this.isAttacked(CONSTANTS.G8, CONSTANTS.WHITE);
+                                //this.undo();
+                                this.board[CONSTANTS.H8] = CONSTANTS.BLACK_ROOK;
+                                this.board[CONSTANTS.E8] = CONSTANTS.BLACK_KING;
+                                this.board[CONSTANTS.G8] = CONSTANTS.EMPTY;
+                                this.board[CONSTANTS.F8] = CONSTANTS.EMPTY;
+                                return legal;
+                            } else {
+                                return false;
+                            }
+                        }
+                        if (this.isCastlesWQueen(m)) {
+                            if (!this.isAttacked(CONSTANTS.E1, CONSTANTS.BLACK)
+                                    && !this.isAttacked(CONSTANTS.D1, CONSTANTS.BLACK)
+                                    && !this.isAttacked(CONSTANTS.C1, CONSTANTS.BLACK)) {
+                                //this.apply(m);
+                                this.board[CONSTANTS.E1] = CONSTANTS.EMPTY;
+                                this.board[CONSTANTS.A1] = CONSTANTS.EMPTY;
+                                this.board[CONSTANTS.D1] = CONSTANTS.WHITE_ROOK;
+                                this.board[CONSTANTS.C1] = CONSTANTS.WHITE_KING;
+                                boolean legal = !this.isAttacked(CONSTANTS.C1, CONSTANTS.BLACK);
+                                //this.undo();
+                                this.board[CONSTANTS.E1] = CONSTANTS.WHITE_KING;
+                                this.board[CONSTANTS.A1] = CONSTANTS.WHITE_ROOK;
+                                this.board[CONSTANTS.D1] = CONSTANTS.EMPTY;
+                                this.board[CONSTANTS.C1] = CONSTANTS.EMPTY;
+                                return legal;
+                            } else {
+                                return false;
+                            }
+                        }
+                        if (this.isCastlesBqueen(m)) {
+                            if (!this.isAttacked(CONSTANTS.E8, CONSTANTS.WHITE)
+                                    && !this.isAttacked(CONSTANTS.D8, CONSTANTS.WHITE)
+                                    && !this.isAttacked(CONSTANTS.C8, CONSTANTS.WHITE)) {
+                                //ArrayList<Move> targets = this.pseudoLegalMoves(CONSTANTS.F7, CONSTANTS.ANY_SQUARE, CONSTANTS.ANY_PIECE, false, CONSTANTS.WHITE);
+                                //this.apply(m);
+                                this.board[CONSTANTS.E8] = CONSTANTS.EMPTY;
+                                this.board[CONSTANTS.A8] = CONSTANTS.EMPTY;
+                                this.board[CONSTANTS.D8] = CONSTANTS.BLACK_ROOK;
+                                this.board[CONSTANTS.C8] = CONSTANTS.BLACK_KING;
+                                boolean legal = !this.isAttacked(CONSTANTS.C8, CONSTANTS.WHITE);
+                                //this.undo();
+                                this.board[CONSTANTS.E8] = CONSTANTS.BLACK_KING;
+                                this.board[CONSTANTS.A8] = CONSTANTS.BLACK_ROOK;
+                                this.board[CONSTANTS.D8] = CONSTANTS.EMPTY;
+                                this.board[CONSTANTS.C8] = CONSTANTS.EMPTY;
+                                return legal;
+                            } else {
+                                return false;
+                            }
+                        }
+                        // if none of the castles cases triggered, we have a standard king move
+                        // just check if king isn't attacked after applying the move
+                        //boolean legal = false;
+                        //this.apply(m);
+                        int old_target = board[m.to];
+                        board[m.to] = board[m.from];
+                        board[m.from] = CONSTANTS.EMPTY;
+                        //Board b_temp = this.makeCopy();
+                        boolean legal = !this.isAttacked(m.to, !color);
+                        board[m.from] = board[m.to];
+                        board[m.to] = old_target;
+
+                        //this.undo();
+                        return legal;
+                    }
+
+
+    }
+        /*
         for(int i= 21;i<99;i++) {
             if(!(this.board[i] == CONSTANTS.EMPTY) && !(this.board[i] == CONSTANTS.FRINGE)) {
                 if (this.getPieceTypeAt(i) == CONSTANTS.KING && this.getPieceColorAt(i) == color) {
@@ -1459,9 +1673,14 @@ public class Board {
                                     && !this.isAttacked(CONSTANTS.D8, CONSTANTS.WHITE)
                                     && !this.isAttacked(CONSTANTS.C8, CONSTANTS.WHITE)) {
                                 //ArrayList<Move> targets = this.pseudoLegalMoves(CONSTANTS.F7, CONSTANTS.ANY_SQUARE, CONSTANTS.ANY_PIECE, false, CONSTANTS.WHITE);
-                                this.apply(m);
+                                //this.apply(m);
+                                int old_target = board[m.to];
+                                board[m.to] = board[m.from];
+                                board[m.from] = CONSTANTS.EMPTY;
                                 boolean legal = !this.isAttacked(CONSTANTS.C8, CONSTANTS.WHITE);
-                                this.undo();
+                                board[m.from] = board[m.to];
+                                board[m.to] = old_target;
+                                //this.undo();
                                 return legal;
                             } else {
                                 return false;
@@ -1479,8 +1698,8 @@ public class Board {
                 }
             }
         }
-        return false;
-    }
+         */
+
 
 
     /**
@@ -2028,7 +2247,7 @@ public class Board {
      * CONSTANTS.KING etc.) at the given square, of if the square is empty
      * @param internalCoordinate square location as internal coordinate
      *                           (i.e. absolute index of the 120 array representation of the Board)
-     * @return piece type at the requested square, CONSTANTS.EMPTY otherwise
+     * @return piece type at the requested square, throws error otherwise
      */
     public int getPieceTypeAt(int internalCoordinate) {
         if(internalCoordinate <21 || internalCoordinate >98) {
