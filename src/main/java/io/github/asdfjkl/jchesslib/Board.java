@@ -173,7 +173,7 @@ public class Board {
             this.turn = CONSTANTS.WHITE;
             for (int i = 0; i < 120; i++) {
                 this.board[i] = CONSTANTS.INIT_POS[i];
-                this.oldBoard[i] = CONSTANTS.FRINGE;;
+                this.oldBoard[i] = CONSTANTS.FRINGE;
             }
             this.initPieceList();
             this.castleWkingOk = true;
@@ -251,8 +251,7 @@ public class Board {
             throw new IllegalArgumentException("fen: not 8 rows in 0th part in "+fen);
         }
         // check that in each row, there are no two consecutive digits
-        for(int i=0;i<rows.length;i++) {
-            String row = rows[i];
+        for(String row : rows) {
             int field_sum = 0;
             boolean previous_was_digit = false;
             for(int j=0;j<row.length();j++) {
@@ -956,14 +955,6 @@ public class Board {
         }
     }
 
-    //private boolean isOffside(int internalCoordinate) {
-    //    return (this.board[internalCoordinate] == 0xFF);
-    //}
-
-    //private boolean isEmpty(int internalCoordinate) {
-    //    return (this.board[internalCoordinate] == 0);
-    //}
-
     /**
      * computes all pseudo-legal moves in the current position     *
      * @return ArrayList containing pseudo-legal Moves
@@ -987,7 +978,7 @@ public class Board {
     public ArrayList<Move> pseudoLegalMoves(int internalFromSquare, int internalToSquare, int pieceType,
                                             boolean genCastleMoves, int color) {
 
-        ArrayList<Move> moves = new ArrayList<Move>();
+        ArrayList<Move> moves = new ArrayList<>();
         // pawn moves
         if(pieceType == CONSTANTS.ANY_PIECE || pieceType == CONSTANTS.PAWN) {
             for(int i=0;i<10;i++) {
@@ -1610,8 +1601,7 @@ public class Board {
     public ArrayList<Move> legalMoves() {
 
         ArrayList<Move> pseudoLegals = this.pseudoLegalMoves();
-        // System.out.println("pseudoLegalSize: "+pseudoLegals.size());
-        ArrayList<Move> legals = new ArrayList<Move>();
+        ArrayList<Move> legals = new ArrayList<>();
         for(Move mi : pseudoLegals) {
             try {
                 if (this.isPseudoALegal(mi)) {
@@ -1638,7 +1628,7 @@ public class Board {
     public ArrayList<Move> legaMovesTo(int internalToSquare, int pieceType) {
 
         ArrayList<Move> pseudoLegals = this.pseudoLegalMoves(CONSTANTS.ANY_SQUARE, internalToSquare, pieceType, true, this.turn);
-        ArrayList<Move> legals = new ArrayList<Move>();
+        ArrayList<Move> legals = new ArrayList<>();
         for(Move mi : pseudoLegals) {
             if(this.isPseudoALegal(mi)) {
                 legals.add(mi);
@@ -1664,7 +1654,7 @@ public class Board {
                         true,
                         this.turn
                 );
-        ArrayList<Move> legals = new ArrayList<Move>();
+        ArrayList<Move> legals = new ArrayList<>();
         for(Move mi : pseudoLegals) {
             if(this.isPseudoALegal(mi)) {
                 legals.add(mi);
@@ -1680,7 +1670,7 @@ public class Board {
      * @return those Moves from the input list that are legal
      */
     public ArrayList<Move> legalsFromPseudos(ArrayList<Move> pseudos) {
-        ArrayList<Move> legals = new ArrayList<Move>();
+        ArrayList<Move> legals = new ArrayList<>();
         for(Move mi : pseudos) {
             if(this.isPseudoALegal(mi)) {
                 legals.add(mi);
@@ -1970,7 +1960,7 @@ public class Board {
     /**
      * Checks if Undo is possible for the current Board. Note that at most
      * one undo operation is possible at a time (only undo the last applied move)
-     * @return
+     * @return true if undoing the last move is possible, false otherwise
      */
     public boolean isUndoAvailable() {
         return this.undoAvailable;
@@ -1978,7 +1968,7 @@ public class Board {
 
     /**
      * Sets the castling rights for white castles short
-     * @param canDo
+     * @param canDo true if white should be able to castle short
      */
     public void setCastleWKing(boolean canDo) {
         this.castleWkingOk = canDo;
@@ -1986,7 +1976,7 @@ public class Board {
 
     /**
      * Sets the castling rights for black castles short
-     * @param canDo
+     * @param canDo true if black should be able to castle short
      */
     public void setCastleBKing(boolean canDo) {
         this.castleBkingOk = canDo;
@@ -1994,7 +1984,7 @@ public class Board {
 
     /**
      * Sets the castling rights for white castles long
-     * @param canDo
+     * @param canDo true if white should be able to castle long
      */
     public void setCastleWQueen(boolean canDo) {
         this.castleWqueenOk = canDo;
@@ -2002,7 +1992,7 @@ public class Board {
 
     /**
      * Sets the castling rights for black castles long
-     * @param canDo
+     * @param canDo true if black should be able to castle long
      */
     public void setCastleBQueen(boolean canDo) {
         this.castleBqueenOk = canDo;
@@ -2284,7 +2274,7 @@ public class Board {
         if(this.isAttacked(idx_king_not_to_move, toMove)) {
             return false;
         }
-        // each side has 8 pawns or less
+        // each side has 8 pawns or fewer
         if(cntWhitePawns > 8 || cntBlackPawns > 8) {
             return false;
         }
