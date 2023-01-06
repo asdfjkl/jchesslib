@@ -173,7 +173,7 @@ public class Board {
             this.turn = CONSTANTS.WHITE;
             for (int i = 0; i < 120; i++) {
                 this.board[i] = CONSTANTS.INIT_POS[i];
-                this.oldBoard[i] = 0xFF;
+                this.oldBoard[i] = CONSTANTS.FRINGE;;
             }
             this.initPieceList();
             this.castleWkingOk = true;
@@ -200,7 +200,7 @@ public class Board {
             this.turn = CONSTANTS.WHITE;
             for(int i=0;i<120;i++) {
                 this.board[i] = CONSTANTS.EMPTY_POS[i];
-                this.oldBoard[i] = 0xFF;
+                this.oldBoard[i] = CONSTANTS.FRINGE;
             }
             this.initPieceList();
             this.castleWkingOk = false;
@@ -235,7 +235,7 @@ public class Board {
 
         for(int i=0;i<120;i++) {
             this.board[i] = CONSTANTS.EMPTY_POS[i];
-            this.oldBoard[i] = 0xFF;
+            this.oldBoard[i] = CONSTANTS.FRINGE;
         }
 
         // check that we have six parts in fen, each separated by space
@@ -290,7 +290,7 @@ public class Board {
         if(!castlesMatch) {
             throw new IllegalArgumentException("fen: castles encoding is invalid in "+fen);
         }
-        // check correct encoding of en passent squares
+        // check correct encoding of en passant squares
         if(!fenParts[3].equals("-")) {
             if(fenParts[1].equals("w")) {
                 // should be something like "e6" etc. if white is to move
@@ -438,7 +438,7 @@ public class Board {
         this.turn = CONSTANTS.WHITE;
         for(int i=0;i<120;i++) {
             this.board[i] = CONSTANTS.INIT_POS[i];
-            this.oldBoard[i] = 0xFF;
+            this.oldBoard[i] = CONSTANTS.FRINGE;
         }
         this.initPieceList();
         this.castleWkingOk = true;
@@ -470,7 +470,7 @@ public class Board {
         this.turn = CONSTANTS.WHITE;
         for(int i=0;i<120;i++) {
             this.board[i] = CONSTANTS.EMPTY_POS[i];
-            this.oldBoard[i] = 0xFF;
+            this.oldBoard[i] = CONSTANTS.FRINGE;
         }
         this.initPieceList();
         this.castleWkingOk = false;
@@ -730,7 +730,7 @@ public class Board {
             int oldPieceType = this.getPieceTypeAt(m.from);
             int color = this.getPieceColorAt(m.from);
             // if target field is not empty, remove from piece list
-            // this must be of oppsite color than the currently moving piece
+            // this must be of opposite color as the currently moving piece
             if(this.board[m.to] != CONSTANTS.EMPTY) {
                 int currentTargetPiece = this.getPieceTypeAt(m.to);
                 this.removeFromPieceList(negColor(color), currentTargetPiece, m.to);
@@ -738,27 +738,27 @@ public class Board {
             // also remove the currently moving piece from the list
             this.removeFromPieceList(color, oldPieceType, m.from);
             // increase halfmove clock only if no capture or pawn advance
-            // happend
+            // happened
             this.prevHalfmoveClock = this.halfmoveClock;
             if(oldPieceType == CONSTANTS.PAWN || this.board[m.to] != CONSTANTS.EMPTY) {
                 this.halfmoveClock = 0;
             } else {
                 this.halfmoveClock++;
             }
-            // if we move a pawn two steps up, set the en_passent field
+            // if we move a pawn two steps up, set the en_passant field
             if(oldPieceType == CONSTANTS.PAWN) {
                 // white pawn moved two steps up
-                if((m.to - m.from) == 20) {
-                    this.enPassentTarget = m.from + 10;
+                if((m.to - m.from) == CONSTANTS.DIR_N2) {
+                    this.enPassentTarget = m.from + CONSTANTS.DIR_N;
                 }
                 // black pawn moved two steps up (down)
-                if((m.to - m.from == -20)) {
-                    this.enPassentTarget = m.from - 10;
+                if((m.to - m.from == CONSTANTS.DIR_S2)) {
+                    this.enPassentTarget = m.from + CONSTANTS.DIR_S;
                 }
             }
-            // if the move is an en-passent capture,
+            // if the move is an en-passant capture,
             // remove the (non-target) corresponding pawn
-            // move is an en passent move, if
+            // move is an en passant move, if
             // a) color is white, piece type is pawn, target
             // is up left or upright and empty
             // b) color is black, piece type is pawn, target
@@ -766,17 +766,17 @@ public class Board {
             // also set last_move_was_ep to true
             if(oldPieceType == CONSTANTS.PAWN) {
                 if(this.board[m.to] == CONSTANTS.EMPTY) {
-                    if(color == CONSTANTS.WHITE && ((m.to-m.from == 9) || (m.to-m.from)==11)) {
+                    if(color == CONSTANTS.WHITE && ((m.to-m.from == CONSTANTS.DIR_NW) || (m.to-m.from) == CONSTANTS.DIR_NE)) {
                         // remove captured pawn
-                        this.board[m.to-10] = CONSTANTS.EMPTY;
+                        this.board[m.to + CONSTANTS.DIR_S] = CONSTANTS.EMPTY;
                         // also remove from piece list
-                        this.removeFromPieceList(negColor(color), CONSTANTS.PAWN, m.to-10);
+                        this.removeFromPieceList(negColor(color), CONSTANTS.PAWN, m.to + CONSTANTS.DIR_S);
                     }
-                    if(color == CONSTANTS.BLACK && ((m.from -m.to == 9) || (m.from - m.to)==11)) {
+                    if(color == CONSTANTS.BLACK && ((m.from -m.to == CONSTANTS.DIR_NW) || (m.from - m.to) == CONSTANTS.DIR_NE)) {
                         // remove captured pawn
-                        this.board[m.to+10] = CONSTANTS.EMPTY;
+                        this.board[m.to + CONSTANTS.DIR_N] = CONSTANTS.EMPTY;
                         // also remove from piece list
-                        this.removeFromPieceList(negColor(color), CONSTANTS.PAWN, m.to+10);
+                        this.removeFromPieceList(negColor(color), CONSTANTS.PAWN, m.to + CONSTANTS.DIR_N);
                     }
                 }
             }
@@ -1007,7 +1007,7 @@ public class Board {
                 // take up right, or up left
                 for(int j=3;j<=4;j++) {
                     int idx = from + CONSTANTS.DIR_TABLE[piece_idx][j];
-                    if((internalToSquare == CONSTANTS.ANY_SQUARE || idx == internalToSquare) && this.board[idx] != 0xFF) {
+                    if((internalToSquare == CONSTANTS.ANY_SQUARE || idx == internalToSquare) && this.board[idx] != CONSTANTS.FRINGE) {
                         if(( this.board[idx] != 0 && color==CONSTANTS.BLACK && (getPieceColorAt(idx) == CONSTANTS.WHITE)) ||
                                 ( this.board[idx] != 0 && color==CONSTANTS.WHITE && (getPieceColorAt(idx) == CONSTANTS.BLACK)))
                         {
@@ -1029,7 +1029,7 @@ public class Board {
                 // move one (j=1) or two (j=2) up (or down in the case of black)
                 int idx_1up = from + CONSTANTS.DIR_TABLE[piece_idx][1];
                 int idx_2up = from + CONSTANTS.DIR_TABLE[piece_idx][2];
-                if((internalToSquare == CONSTANTS.ANY_SQUARE || idx_2up == internalToSquare) && this.board[idx_2up] != 0xFF) {
+                if((internalToSquare == CONSTANTS.ANY_SQUARE || idx_2up == internalToSquare) && this.board[idx_2up] != CONSTANTS.FRINGE) {
                     if((color == CONSTANTS.WHITE && (from/10==3)) || (color==CONSTANTS.BLACK && (from/10==8))) {
                         // means we have a white/black pawn in initial position, direct square
                         // in front is empty => allow to move two forward
@@ -1053,27 +1053,27 @@ public class Board {
                         moves.add(new Move(from,idx_1up));
                     }
                 }
-                // finally, potential en-passent capture is handled
+                // finally, potential en-passant capture is handled
                 // left up
                 if(internalToSquare == CONSTANTS.ANY_SQUARE || internalToSquare == this.enPassentTarget) {
-                    if (color == CONSTANTS.WHITE && (this.enPassentTarget - from) == 9) {
+                    if (color == CONSTANTS.WHITE && (this.enPassentTarget - from) == CONSTANTS.DIR_NW) {
                         //assert(this.board[from] != 0xff);
                         Move m = new Move(from, this.enPassentTarget);
                         moves.add(m);
                     }
                     // right up
-                    if (color == CONSTANTS.WHITE && (this.enPassentTarget - from) == 11) {
+                    if (color == CONSTANTS.WHITE && (this.enPassentTarget - from) == CONSTANTS.DIR_NE) {
                         //assert(this->board[from] != 0xff);
                         Move m = new Move(from, this.enPassentTarget);
                         moves.add(m);
                     }
                     // left down
-                    if (color == CONSTANTS.BLACK && (this.enPassentTarget - from) == -9) {
+                    if (color == CONSTANTS.BLACK && (this.enPassentTarget - from) == CONSTANTS.DIR_SE) {
                         //assert(this->board[from] != 0xff);
                         Move m = new Move(from, this.enPassentTarget);
                         moves.add(m);
                     }
-                    if (color == CONSTANTS.BLACK && (this.enPassentTarget - from) == -11) {
+                    if (color == CONSTANTS.BLACK && (this.enPassentTarget - from) == CONSTANTS.DIR_SW) {
                         //assert(this->board[from] != 0xff);
                         Move m = new Move(from, this.enPassentTarget);
                         moves.add(m);
@@ -1095,7 +1095,7 @@ public class Board {
                 int lookup_idx = CONSTANTS.IDX_KNIGHT;
                 for(int j=1;j<=CONSTANTS.DIR_TABLE[lookup_idx][0];j++) {
                     int idx = from + CONSTANTS.DIR_TABLE[lookup_idx][j];
-                    if((internalToSquare == CONSTANTS.ANY_SQUARE || idx == internalToSquare) && this.board[idx] != 0xFF) {
+                    if((internalToSquare == CONSTANTS.ANY_SQUARE || idx == internalToSquare) && this.board[idx] != CONSTANTS.FRINGE) {
                         if(  this.board[idx] == 0 || (this.getPieceColorAt(idx) != color)) {
                             moves.add(new Move(from,idx));
                         }
@@ -1117,7 +1117,7 @@ public class Board {
                 int lookup_idx = CONSTANTS.IDX_KING;
                 for(int j=1;j<=CONSTANTS.DIR_TABLE[lookup_idx][0];j++) {
                     int idx = from + CONSTANTS.DIR_TABLE[lookup_idx][j];
-                    if((internalToSquare == CONSTANTS.ANY_SQUARE || idx == internalToSquare) && this.board[idx] != 0xFF) {
+                    if((internalToSquare == CONSTANTS.ANY_SQUARE || idx == internalToSquare) && this.board[idx] != CONSTANTS.FRINGE) {
                         if( this.board[idx] == 0 || (this.getPieceColorAt(idx) != color)) {
                             moves.add(new Move(from,idx));
                         }
@@ -1141,7 +1141,7 @@ public class Board {
                     int idx = from + CONSTANTS.DIR_TABLE[lookup_idx][j];
                     boolean stop = false;
                     while(!stop) {
-                        if(this.board[idx] != 0xFF) {
+                        if(this.board[idx] != CONSTANTS.FRINGE) {
                             if(this.board[idx]==0) {
                                 if(internalToSquare == CONSTANTS.ANY_SQUARE || internalToSquare == idx) {
                                     moves.add(new Move(from,idx));
@@ -1177,7 +1177,7 @@ public class Board {
                     int idx = from + CONSTANTS.DIR_TABLE[lookup_idx][j];
                     boolean stop = false;
                     while(!stop) {
-                        if(this.board[idx]!=0xFF) {
+                        if(this.board[idx]!=CONSTANTS.FRINGE) {
                             if(this.board[idx] == 0) {
                                 if(internalToSquare == CONSTANTS.ANY_SQUARE || internalToSquare == idx) {
                                     moves.add(new Move(from,idx));
@@ -1213,7 +1213,7 @@ public class Board {
                     int idx = from + CONSTANTS.DIR_TABLE[lookup_idx][j];
                     boolean stop = false;
                     while(!stop) {
-                        if(this.board[idx]!=0xFF) {
+                        if(this.board[idx]!=CONSTANTS.FRINGE) {
                             if(this.board[idx] == 0) {
                                 if(internalToSquare == CONSTANTS.ANY_SQUARE || internalToSquare == idx) {
                                     moves.add(new Move(from,idx));
@@ -1238,41 +1238,47 @@ public class Board {
             if(color == CONSTANTS.WHITE) {
                 // check for castling
                 // white kingside
-                if(  this.board[CONSTANTS.E1] != 0 && this.canCastleWhiteKing() && this.board[CONSTANTS.H1] != 0 &&
+                if(  this.board[CONSTANTS.E1] != CONSTANTS.EMPTY && this.canCastleWhiteKing()
+                        && this.board[CONSTANTS.H1] != CONSTANTS.EMPTY &&
                         this.getPieceColorAt(CONSTANTS.E1) == CONSTANTS.WHITE &&
                         this.getPieceColorAt(CONSTANTS.H1) == CONSTANTS.WHITE &&
                         this.getPieceTypeAt(CONSTANTS.E1) == CONSTANTS.KING &&
                         this.getPieceTypeAt(CONSTANTS.H1) == CONSTANTS.ROOK &&
-                        this.board[CONSTANTS.F1] == 0 && this.board[CONSTANTS.G1] == 0) {
+                        this.board[CONSTANTS.F1] == CONSTANTS.EMPTY && this.board[CONSTANTS.G1] == CONSTANTS.EMPTY) {
                     moves.add(new Move(CONSTANTS.E1,CONSTANTS.G1));
                 }
                 // white queenside
-                if( this.board[CONSTANTS.E1] != 0 && this.canCastleWhiteQueen() && this.board[CONSTANTS.A1] != 0 &&
+                if( this.board[CONSTANTS.E1] != CONSTANTS.EMPTY && this.canCastleWhiteQueen()
+                        && this.board[CONSTANTS.A1] != CONSTANTS.EMPTY &&
                         this.getPieceColorAt(CONSTANTS.E1) == CONSTANTS.WHITE &&
                         this.getPieceColorAt(CONSTANTS.A1) == CONSTANTS.WHITE &&
                         this.getPieceTypeAt(CONSTANTS.E1) == CONSTANTS.KING &&
                         this.getPieceTypeAt(CONSTANTS.A1) == CONSTANTS.ROOK
-                        && this.board[CONSTANTS.D1]==0 && this.board[CONSTANTS.C1]==0 && this.board[CONSTANTS.B1]==0) {
+                        && this.board[CONSTANTS.D1]==CONSTANTS.EMPTY
+                        && this.board[CONSTANTS.C1]==CONSTANTS.EMPTY && this.board[CONSTANTS.B1]==CONSTANTS.EMPTY) {
                     moves.add(new Move(CONSTANTS.E1, CONSTANTS.C1));
                 }
             }
             if(color == CONSTANTS.BLACK) {
                 // black kingside
-                if(this.board[CONSTANTS.E8] !=0 && this.canCastleBlackKing() && this.board[CONSTANTS.H8]!=0 &&
+                if(this.board[CONSTANTS.E8] !=CONSTANTS.EMPTY && this.canCastleBlackKing()
+                        && this.board[CONSTANTS.H8]!=CONSTANTS.EMPTY &&
                         this.getPieceColorAt(CONSTANTS.E8) == CONSTANTS.BLACK &&
                         this.getPieceColorAt(CONSTANTS.H8) == CONSTANTS.BLACK &&
                         this.getPieceTypeAt(CONSTANTS.E8) == CONSTANTS.KING &&
                         this.getPieceTypeAt(CONSTANTS.H8) == CONSTANTS.ROOK &&
-                        this.board[CONSTANTS.F8]==0 && this.board[CONSTANTS.G8]==0) {
+                        this.board[CONSTANTS.F8]==CONSTANTS.EMPTY && this.board[CONSTANTS.G8]==CONSTANTS.EMPTY) {
                     moves.add(new Move(CONSTANTS.E8, CONSTANTS.G8));
                 }
                 // black queenside
-                if(this.board[CONSTANTS.E8]!=0 && this.canCastleBlackQueen() && board[CONSTANTS.A8] !=0 &&
+                if(this.board[CONSTANTS.E8]!=CONSTANTS.EMPTY && this.canCastleBlackQueen()
+                        && board[CONSTANTS.A8] !=CONSTANTS.EMPTY &&
                         this.getPieceColorAt(CONSTANTS.E8) == CONSTANTS.BLACK &&
                         this.getPieceColorAt(CONSTANTS.A8) == CONSTANTS.BLACK &&
                         this.getPieceTypeAt(CONSTANTS.E8) == CONSTANTS.KING &&
                         this.getPieceTypeAt(CONSTANTS.A8) == CONSTANTS.ROOK &&
-                        this.board[CONSTANTS.D8]==0 && this.board[CONSTANTS.C8]==0 && this.board[CONSTANTS.B8]==0) {
+                        this.board[CONSTANTS.D8]==CONSTANTS.EMPTY && this.board[CONSTANTS.C8]==CONSTANTS.EMPTY
+                        && this.board[CONSTANTS.B8]==CONSTANTS.EMPTY) {
                     moves.add(new Move(CONSTANTS.E8, CONSTANTS.C8));
                 }
             }
@@ -1280,32 +1286,36 @@ public class Board {
         return moves;
     }
 
-    // doesn't account for attacks via en-passent
+    // doesn't account for attacks via en-passant
     private boolean isAttacked(int idx, int attacker_color) {
         // first check for potential pawn attackers
         // attacker color white, pawn must be white.
-        // lower left
-        if(attacker_color == CONSTANTS.WHITE && (this.board[idx-9]!=0xFF && this.board[idx-9] != 0)
-            && (this.getPieceColorAt(idx-9)==CONSTANTS.WHITE)
-                && (this.getPieceTypeAt(idx-9)==CONSTANTS.PAWN)) {
+        // lower right
+        if(attacker_color == CONSTANTS.WHITE && (this.board[idx+CONSTANTS.DIR_SE]!=CONSTANTS.FRINGE
+                && this.board[idx+CONSTANTS.DIR_SE] != CONSTANTS.EMPTY)
+            && (this.getPieceColorAt(idx+CONSTANTS.DIR_SE)==CONSTANTS.WHITE)
+                && (this.getPieceTypeAt(idx+CONSTANTS.DIR_SE)==CONSTANTS.PAWN)) {
             return true;
         }
-        // lower right
-        if(attacker_color == CONSTANTS.WHITE && (this.board[idx-11]!=0xFF && this.board[idx-11] != 0)
-            && (this.getPieceColorAt(idx-11)==CONSTANTS.WHITE)
-                && (this.getPieceTypeAt(idx-11)==CONSTANTS.PAWN)) {
+        // lower left
+        if(attacker_color == CONSTANTS.WHITE && (this.board[idx+CONSTANTS.DIR_SW]!=CONSTANTS.FRINGE
+                && this.board[idx+CONSTANTS.DIR_SW] != CONSTANTS.EMPTY)
+            && (this.getPieceColorAt(idx+CONSTANTS.DIR_SW)==CONSTANTS.WHITE)
+                && (this.getPieceTypeAt(idx+CONSTANTS.DIR_SW)==CONSTANTS.PAWN)) {
             return true;
         }
         // check black, upper right
-        if(attacker_color == CONSTANTS.BLACK && (this.board[idx+11]!=0xFF && this.board[idx+11] != 0)
-            && (this.getPieceColorAt(idx+11)==CONSTANTS.BLACK)
-                && (this.getPieceTypeAt(idx+11)==CONSTANTS.PAWN)) {
+        if(attacker_color == CONSTANTS.BLACK && (this.board[idx+CONSTANTS.DIR_NE]!=CONSTANTS.FRINGE
+                && this.board[idx+CONSTANTS.DIR_NE] != CONSTANTS.EMPTY)
+            && (this.getPieceColorAt(idx+CONSTANTS.DIR_NE)==CONSTANTS.BLACK)
+                && (this.getPieceTypeAt(idx+CONSTANTS.DIR_NE)==CONSTANTS.PAWN)) {
             return true;
         }
         // check black, upper left
-        if(attacker_color == CONSTANTS.BLACK && (this.board[idx+9]!=0xFF && this.board[idx+9] != 0)
-            && (this.getPieceColorAt(idx+9)==CONSTANTS.BLACK)
-                && (this.getPieceTypeAt(idx+9)==CONSTANTS.PAWN)) {
+        if(attacker_color == CONSTANTS.BLACK && (this.board[idx+9]!=CONSTANTS.FRINGE
+                && this.board[idx+CONSTANTS.DIR_NW] != CONSTANTS.EMPTY)
+            && (this.getPieceColorAt(idx+CONSTANTS.DIR_NW)==CONSTANTS.BLACK)
+                && (this.getPieceTypeAt(idx+CONSTANTS.DIR_NW)==CONSTANTS.PAWN)) {
             return true;
         }
 
@@ -1358,7 +1368,7 @@ public class Board {
                 for(int j=1;j<8;j++) {
                     int offset = idx + (direction * j);
                     // if in fringe, stop
-                    if(board[offset] == 0xFF) {
+                    if(board[offset] == CONSTANTS.FRINGE) {
                         break;
                     }
                     // if empty, move further along the ray
@@ -1484,7 +1494,7 @@ public class Board {
     public boolean isPseudoALegal(Move m) {
         // a pseudo legal move is a legal move if
         // a) doesn't put king in check
-        // b) if castle, must ensure that 1) king is not currently in check
+        // b) if castles, must ensure that 1) king is not currently in check
         //                                2) castle over squares are not in check
         //                                3) doesn't castle into check
         // first find color of mover
@@ -1504,10 +1514,12 @@ public class Board {
                                 // roll back manually (quicker)
 
                                 if (this.board[m.to] == CONSTANTS.EMPTY) {
-                                    if (color == CONSTANTS.WHITE && ((m.to - m.from == 9) || (m.to - m.from) == 11)) {
+                                    if (color == CONSTANTS.WHITE && ((m.to - m.from == CONSTANTS.DIR_NW)
+                                            || (m.to - m.from) == CONSTANTS.DIR_NE)) {
                                         whiteEpCapture = true;
                                     }
-                                    if (color == CONSTANTS.BLACK && ((m.from - m.to == 9) || (m.from - m.to) == 11)) {
+                                    if (color == CONSTANTS.BLACK && ((m.from - m.to == CONSTANTS.DIR_NW)
+                                            || (m.from - m.to) == CONSTANTS.DIR_NE)) {
                                         blackEpCapture = true;
                                     }
                                 }
@@ -1517,20 +1529,20 @@ public class Board {
                                 board[m.to] = board[m.from];
                                 board[m.from] = CONSTANTS.EMPTY;
                                 if(whiteEpCapture) {
-                                    this.board[m.to - 10] = CONSTANTS.EMPTY;
+                                    this.board[m.to + CONSTANTS.DIR_S] = CONSTANTS.EMPTY;
                                 }
                                 if(blackEpCapture) {
-                                    this.board[m.to + 10] = CONSTANTS.EMPTY;
+                                    this.board[m.to + CONSTANTS.DIR_N] = CONSTANTS.EMPTY;
                                 }
                                 //Board b_temp = this.makeCopy();
                                 boolean legal = !this.isAttacked(i, negColor(color));
                                 board[m.from] = board[m.to];
                                 board[m.to] = old_target;
                                 if(whiteEpCapture) {
-                                    this.board[m.to - 10] = CONSTANTS.BLACK_PAWN;
+                                    this.board[m.to + CONSTANTS.DIR_S] = CONSTANTS.BLACK_PAWN;
                                 }
                                 if(blackEpCapture) {
-                                    this.board[m.to + 10] = CONSTANTS.WHITE_PAWN;
+                                    this.board[m.to + CONSTANTS.DIR_N] = CONSTANTS.WHITE_PAWN;
                                 }
                                 //if(legal2 != legal) {
                                 //    System.out.println(this);
@@ -1930,7 +1942,7 @@ public class Board {
             return "--";
         }
         // first test for checkmate and check (to be appended later)
-        // create temp board, since appyling move and
+        // create temp board, since applying move and
         // testing for checkmate (which again needs
         // application of a move) makes it impossible
         // to undo (undo can only be done once, not twice in a row)
@@ -2212,7 +2224,7 @@ public class Board {
             int idx = Board.xyToInternal(x,y);
             return this.board[idx];
         } else {
-            throw new IllegalArgumentException("called getPieceAt with invalid paramters, (x,y): "+x+","+y);
+            throw new IllegalArgumentException("called getPieceAt with invalid parameters, (x,y): "+x+","+y);
         }
     }
 
@@ -2804,7 +2816,7 @@ public class Board {
         }
         for(int i=21;i<99;i++) {
             int piece = this.board[i];
-            if(!(piece == CONSTANTS.EMPTY) && !(piece == 0xFF)) {
+            if(!(piece == CONSTANTS.EMPTY) && !(piece == CONSTANTS.FRINGE)) {
                 int color = CONSTANTS.WHITE;
                 if(piece > 0x80) {
                     piece = piece - 0x80;
