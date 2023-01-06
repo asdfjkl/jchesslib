@@ -54,10 +54,8 @@ Always call `isUndoAvailable` before undoing a move:
 Board board = new Board(true);
 Move m1 = new Move("e2e4");
 board.apply(m1);
-try {
+if(isUndoAvailable()){
     board.undo();
-} catch(IllegalArgumentException e) {
-    System.out.println("Can't undo: "+e);
 }
 ````
 

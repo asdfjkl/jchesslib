@@ -171,6 +171,33 @@ public class CONSTANTS {
     public static final int H7 = 88;
     public static final int H8 = 98;
 
+    // one square move directions on the 120 mailbox array
+    // N = North, E = East, S = South, W = West
+    public static final int DIR_N = 10;
+    public static final int DIR_NE = 11;
+    public static final int DIR_E = 1;
+    public static final int DIR_SE = -9;
+    public static final int DIR_S = -10;
+    public static final int DIR_SW = -11;
+    public static final int DIR_W = -1;
+    public static final int DIR_NW = 9;
+
+    // move directions for knights and
+    // initial pawns
+    // N, E, S, W as above
+    // N2 = North twice, E2 = East twice
+    // S2 = South twice, W2 = West twice
+    public static final int DIR_N2E = 21;
+    public static final int DIR_N2W = 19;
+    public static final int DIR_E2N = 12;
+    public static final int DIR_W2N = 8;
+    public static final int DIR_S2E = -19;
+    public static final int DIR_S2W = -21;
+    public static final int DIR_W2S = -12;
+    public static final int DIR_E2S = -8;
+    public static final int DIR_N2 = 20;
+    public static final int DIR_S2 = -20;
+
     /**
      * first dim is for different piece types
      * [piece_type[0] is DCOUNT (as in Byte Magazine paper)
@@ -180,13 +207,13 @@ public class CONSTANTS {
      */
     public static final int[][] DIR_TABLE =
             {
-                { 4, -10, -20, -11, -9 ,   0,   0,   0,   0 }, // max 4 black pawn directions, rest 0's
-                { 4, +10, +20, +11, +9 ,   0,   0,   0,   0 }, // max 4 white pawn directions, rest 0's
-                { 8, -21, -12, +8 , +19, +21, +12, -8, -19 },  // 8 knight directions
-                { 4, +9 , +11, -11, -9 ,   0,   0,   0,   0 }, // 4 bishop directions
-                { 4, +10, -10, +1 , -1 ,   0,   0,   0,   0 }, // 4 rook directions
-                { 8, +9 , +11, -11, -9 ,   +10, -10, +1, -1 }, // 8 queen directions
-                { 8, +9 , +11, -11, -9 ,   +10, -10, +1, -1 }  // 8 king directions (= queen dir's)
+                { 4, DIR_S, DIR_S2, DIR_SW, DIR_SE, 0, 0, 0, 0 }, // max 4 black pawn directions, rest 0's
+                { 4, DIR_N, DIR_N2, DIR_NE, DIR_NW, 0, 0, 0, 0 }, // max 4 white pawn directions, rest 0's
+                { 8, DIR_S2W, DIR_W2S, DIR_W2N, DIR_N2W, DIR_N2E, DIR_E2N, DIR_E2S, DIR_S2E },  // 8 knight directions
+                { 4, DIR_NW, DIR_NE, DIR_SW, DIR_SE, 0, 0, 0, 0 }, // 4 bishop directions
+                { 4, DIR_N, DIR_S, DIR_E, DIR_W, 0, 0, 0, 0 }, // 4 rook directions
+                { 8, DIR_NW, DIR_NE, DIR_SW, DIR_SE, DIR_N, DIR_S, DIR_E, DIR_W }, // 8 queen directions
+                { 8, DIR_NW, DIR_NE, DIR_SW, DIR_SE, DIR_N, DIR_S, DIR_E, DIR_W }  // 8 king directions (= queen dir's)
             };
 
     /**
