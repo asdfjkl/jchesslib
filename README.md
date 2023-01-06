@@ -287,13 +287,20 @@ Some benchmarks:
 | jchesslib              |      72      |
 | python-chess (cpython) |     238      |
 
-Processing a large (1.3 GB) PGN File:
+Processing a large (1.5 GB) PGN File:
 
-| Library                | seconds      |
-|------------------------|:------------:|
-| scan PGN for game offsets  |    4    |
-| read all games        |      171      |
-| read all games and write to another file  |     729      |
+| jchesslib                                  | seconds |
+|--------------------------------------------|:-------:|
+| scan PGN for game offsets                  |    4    |
+| read all games                             |   171   |
+| read all games and search for a position   |   248   |
+| read all games and write to another file   |   518   |
+
+As a comparison:
+
+| Fritz 8                                    | seconds |
+| ------------------------------------------ |:-------:|
+| read all games and search for a position   |   332   |
 
 
 ## License
