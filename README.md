@@ -284,7 +284,7 @@ Some benchmarks:
 | Library                | Perft 6 (ms) |
 |------------------------|:------------:|
 | Stockfish 14.1         |    0.572     |
-| jchesslib              |      72      |
+| jchesslib              |      18      |
 | python-chess (cpython) |     238      |
 
 Processing a large (1.5 GB) PGN File:
