@@ -284,35 +284,6 @@ public class JchesslibTest
     }
 
     @Test
-    public void runBitSetTest() {
-        System.out.println("TEST: runBitSetTest");
-        // e.g. distance one, i.e. index 1 (=left, up, down, right square) has
-        // value 0x1C = MSB 00011100 LSB, i.e. king, queen, rook can
-        // potentially attack
-        // 0              Knight
-        // 1              Bishop
-        // 2              Rook
-        // 3              Queen
-        // 4              King
-        Board b_temp = new Board();
-        int attackIdx1 = CONSTANTS.ATTACK_TABLE[1];
-        System.out.println("attackIdx1: " + attackIdx1);
-        assertEquals(attackIdx1, 28);
-        System.out.println("expected: MSB 00011100 LSB");
-        System.out.println("bit 0 (Knight): "+ b_temp.isKthBitSet(attackIdx1, 0));
-        assertFalse(b_temp.isKthBitSet(attackIdx1, 0));
-        System.out.println("bit 1 (bishop): "+ b_temp.isKthBitSet(attackIdx1, 1));
-        assertFalse(b_temp.isKthBitSet(attackIdx1, 1));
-        System.out.println("bit 2 (rook): "+ b_temp.isKthBitSet(attackIdx1, 2));
-        assertTrue(b_temp.isKthBitSet(attackIdx1, 2));
-        System.out.println("bit 3 (queen): "+ b_temp.isKthBitSet(attackIdx1, 3));
-        assertTrue(b_temp.isKthBitSet(attackIdx1, 3));
-        System.out.println("bit 4 (king): "+ b_temp.isKthBitSet(attackIdx1, 4));
-        assertTrue(b_temp.isKthBitSet(attackIdx1, 4));
-    }
-
-
-    @Test
     public void runPgnPrintTest() {
 
         System.out.println("TEST: runPgnPrintTest");

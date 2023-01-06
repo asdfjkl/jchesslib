@@ -172,36 +172,6 @@ public class CONSTANTS {
     public static final int H8 = 98;
 
     /**
-     * attack table
-     * the index of this array corresponds to the distance
-     * between two squares of the board (note the board is
-     * encoded as a one dim array of size 120, where A1 = 21, H1 = 28
-     * A8 = 91, A8 = 98.
-     * the value denotes whether an enemy rook, bishop, knight, queen, king
-     * on one square can attack the other square. The following encoding
-     * is used:
-     * Bitposition    Piece
-     * 0              Knight
-     * 1              Bishop
-     * 2              Rook
-     * 3              Queen
-     * 4              King
-     * e.g. distance one, i.e. index 1 (=left, up, down, right square) has
-     * value 0x1C = MSB 00011100 LSB, i.e. king, queen, rook can
-     * potentially attack
-     */
-    public static final int[] ATTACK_TABLE =
-             {  0x00, 0x1C, 0x0C, 0x0C, 0x0C, 0x0C, 0x0C, 0x0C, 0x01, 0x1a,
-                0x1C, 0x1A, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0a, 0x01,
-                0x0C, 0x01, 0x0A, 0x00, 0x00, 0x00, 0x00, 0x0a, 0x00, 0x00,
-                0x0C, 0x00, 0x00, 0x0A, 0x00, 0x00, 0x0a, 0x00, 0x00, 0x00,
-                0x0C, 0x00, 0x00, 0x00, 0x0A, 0x0a, 0x00, 0x00, 0x00, 0x00,
-                0x0C, 0x00, 0x00, 0x00, 0x0a, 0x0A, 0x00, 0x00, 0x00, 0x00,
-                0x0C, 0x00, 0x00, 0x0a, 0x00, 0x00, 0x0A, 0x00, 0x00, 0x00,
-                0x0C, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0A
-             };
-
-    /**
      * first dim is for different piece types
      * [piece_type[0] is DCOUNT (as in Byte Magazine paper)
      * [piece_type[1] ... [piece_type][4] resp.
@@ -252,19 +222,19 @@ public class CONSTANTS {
     /**
      * constant for white player
      */
-    public static final boolean WHITE = false;
+    public static final boolean B_WHITE = false;
     /**
      * constant for white player (when integer is expected)
      */
-    public static final int IWHITE = 0;
+    public static final int WHITE = 0;
     /**
      * constant for black player
      */
-    public static final boolean BLACK = true;
+    public static final boolean B_BLACK = true;
     /**
      * constant for black player (when integer is expected)
      */
-    public static final int IBLACK = 1;
+    public static final int BLACK = 1;
 
     // for
     /**
