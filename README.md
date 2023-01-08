@@ -12,7 +12,19 @@ jchesslib is a chess library for Java. It supports:
 
 ## Installation
 
-Install via [Maven](https://search.maven.org/artifact/io.github.asdfjkl/jchesslib) or download the jar [here](https://github.com/asdfjkl/jchesslib/releases)
+Install via [Maven](https://search.maven.org/artifact/io.github.asdfjkl/jchesslib). 
+Add this dependency to `pom.xml`:
+
+````
+<dependency>
+  <groupId>io.github.asdfjkl</groupId>
+  <artifactId>jchesslib</artifactId>
+  <version>1.1</version>
+</dependency>
+````
+
+Or download the jar [here](https://github.com/asdfjkl/jchesslib/releases).
+
 
 ## Documentation
 
