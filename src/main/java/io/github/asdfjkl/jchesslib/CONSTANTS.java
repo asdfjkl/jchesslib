@@ -27,7 +27,7 @@ package io.github.asdfjkl.jchesslib;
 
 /**
  * This class defines various static constants - mostly integers - used
- * throughout the library
+ * throughout the library.
  */
 public class CONSTANTS {
 

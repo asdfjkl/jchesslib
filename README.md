@@ -12,7 +12,7 @@ jchesslib is a chess library for Java. It supports:
 
 ## Installation
 
-Install via [Maven](https://mvnrepository.com) or download the jar [here](http://...)
+Install via [Maven](https://search.maven.org/artifact/io.github.asdfjkl/jchesslib) or download the jar [here](https://github.com/asdfjkl/jchesslib/releases)
 
 ## Documentation
 
@@ -232,6 +232,21 @@ g.applyMove(new Move("f6e4"));
 PgnPrinter printer = new PgnPrinter();
 System.out.println(printer.printGame(g));
 printer.writeGame(g, "temp.pgn");
+````
+
+````
+HtmlPrinter printer = new HtmlPrinter();
+System.out.println(printer.printGame(g));
+>>><b><span id="n1"><a href="#1">1. e4</a></span> 
+>>></b><b><span id="n2"><a href="#2">e5</a></span> 
+>>></b><b><span id="n3"><a href="#3">2. Nf3</a></span> 
+>>></b><b><span id="n4"><a href="#4">Nc6</a></span> 
+>>></b><b><span id="n5"><a href="#5">3. Bc4</a></span> 
+>>></b><b><span id="n6"><a href="#6">Nf6</a></span> 
+>>></b><b><span id="n7"><a href="#7">4. d4</a></span> 
+>>></b><b><span id="n8"><a href="#8">exd4</a></span> 
+>>></b><b><span id="n9"><a href="#9">5. O-O</a></span> 
+>>></b><b><span id="n10"><a href="#10">Nxe4</a></span> </b>*
 ````
 
 ### Open Polyglot Opening Books

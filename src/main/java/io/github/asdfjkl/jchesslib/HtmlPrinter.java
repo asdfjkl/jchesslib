@@ -29,7 +29,7 @@ package io.github.asdfjkl.jchesslib;
 import java.util.ArrayList;
 
 /**
- * render a html representation of the game
+ * Render a html representation of the game.
  */
 public class HtmlPrinter {
 

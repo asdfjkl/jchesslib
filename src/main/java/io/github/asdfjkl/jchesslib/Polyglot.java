@@ -33,7 +33,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 
 /**
- * reads opening books encoded to the Polyglot specification
+ * Reads opening books encoded to the Polyglot specification.
  */
 public class Polyglot {
 

@@ -27,8 +27,7 @@
 package io.github.asdfjkl.jchesslib;
 
 /**
- *
-
+ * Simple wrapper for polyglot-ext book entries.
  */
 public class PolyglotExtEntry {
     long key;

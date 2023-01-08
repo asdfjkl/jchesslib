@@ -32,7 +32,7 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 
-/*
+/**
  * PolyglotExt is a simple bookformat
  * of consecutive entries of 18 bytes each using
  * a similar encoding as the original Polyglot.

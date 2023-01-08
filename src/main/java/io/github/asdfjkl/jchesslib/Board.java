@@ -23,12 +23,6 @@
  * THE SOFTWARE.
  */
 
-/**
- * Stockfish 14.1, PerfT 6:    508 ms (incl. printout!)
- * jchesslib,      PerfT 6:  17998 ms
- * Python-Chess,   PerfT 6: 249846 ms
- */
-
 package io.github.asdfjkl.jchesslib;
 
 import java.awt.Point;

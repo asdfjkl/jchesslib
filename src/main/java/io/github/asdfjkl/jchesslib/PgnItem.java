@@ -26,7 +26,7 @@
 package io.github.asdfjkl.jchesslib;
 
 /**
- * wraps information about a game within a PGN file. This includes
+ * Wraps information about a game within a PGN file. This includes
  * the seven mandatory PGN headers, ECO classification as well as the
  * index (n-th game in the file) and the absolut offset within the file.
  */

@@ -30,7 +30,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 
 /**
- * represents a node of a game tree
+ * Represents a node of a game tree.
  */
 public class GameNode {
 

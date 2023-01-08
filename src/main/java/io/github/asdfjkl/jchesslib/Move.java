@@ -26,7 +26,7 @@
 package io.github.asdfjkl.jchesslib;
 
 /**
- * represents chess moves
+ * Represents chess moves.
  */
 public class Move {
 

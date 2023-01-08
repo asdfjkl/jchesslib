@@ -34,7 +34,7 @@ import java.util.HashMap;
 import java.util.Stack;
 
 /**
- * read PGN files
+ * Read PGN files.
  */
 public class PgnReader {
 
