@@ -28,7 +28,7 @@ Or download the jar [here](https://github.com/asdfjkl/jchesslib/releases).
 
 ## Documentation
 
-Javadoc for jchess lib is [here](https://asdfjkl.github.io/jchesslib/)
+Javadoc for jchesslib is [here](https://asdfjkl.github.io/jchesslib/)
 
 ## Examples
 

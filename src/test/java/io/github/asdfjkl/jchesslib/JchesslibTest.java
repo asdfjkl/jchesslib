@@ -8,7 +8,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 
 /**
- * unit tests for jchesslib
+ * Unit tests for jchesslib.
  */
 public class JchesslibTest
 {

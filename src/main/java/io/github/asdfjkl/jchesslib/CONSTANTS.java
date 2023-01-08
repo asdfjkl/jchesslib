@@ -249,17 +249,9 @@ public class CONSTANTS {
     /**
      * constant for white player
      */
-    public static final boolean B_WHITE = false;
-    /**
-     * constant for white player (when integer is expected)
-     */
     public static final int WHITE = 0;
     /**
      * constant for black player
-     */
-    public static final boolean B_BLACK = true;
-    /**
-     * constant for black player (when integer is expected)
      */
     public static final int BLACK = 1;
 
