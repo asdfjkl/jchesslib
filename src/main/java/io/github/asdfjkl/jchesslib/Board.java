@@ -2146,9 +2146,9 @@ public class Board {
      * @param player one of CONSTANTS.WHITE or CONSTANTS.BLACK
      * @return internal coordinate of the requested king
      */
-    public int getKingPos(boolean player) {
+    public int getKingPos(int player) {
         for(int i=21;i<99;i++) {
-            if(player == CONSTANTS.B_WHITE) {
+            if(player == CONSTANTS.WHITE) {
                 if(this.board[i] == CONSTANTS.WHITE_KING) {
                     return i;
                 }
