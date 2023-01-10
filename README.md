@@ -19,7 +19,7 @@ Add this dependency to `pom.xml`:
 <dependency>
   <groupId>io.github.asdfjkl</groupId>
   <artifactId>jchesslib</artifactId>
-  <version>1.1</version>
+  <version>1.2</version>
 </dependency>
 ````
 

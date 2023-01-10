@@ -6,7 +6,7 @@
 
   <groupId>io.github.asdfjkl</groupId>
   <artifactId>jchesslib</artifactId>
-  <version>1.1</version>
+  <version>1.2</version>
 
   <name>jchesslib</name>
   <description>chess library in Java</description>
