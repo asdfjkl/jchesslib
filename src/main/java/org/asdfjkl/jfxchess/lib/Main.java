@@ -102,6 +102,7 @@ public class Main {
             selectedTests.put("pgnReadSingleEntryTestOpenClose", cases::pgnReadSingleEntryTestOpenClose);
             selectedTests.put("pgnReadSingleEntryTestSeekWithinRAF", cases::pgnReadSingleEntryTestSeekWithinRAF);
             selectedTests.put("pgnReadAllMillBaseTest", cases::pgnReadAllMillBaseTest);
+            selectedTests.put("pgnStressTest", cases::pgnMoveAmbiguityUTFTest);
         }
 
         if (runAll || runPerft) {
@@ -154,6 +155,7 @@ public class Main {
         tests.put("pgnReadSingleEntryTestOpenClose", cases::pgnReadSingleEntryTestOpenClose);
         tests.put("pgnReadSingleEntryTestSeekWithinRAF", cases::pgnReadSingleEntryTestSeekWithinRAF);
         tests.put("pgnReadAllMillBaseTest", cases::pgnReadAllMillBaseTest);
+        tests.put("pgnStressTest", cases::pgnMoveAmbiguityUTFTest);
         tests.put("runPerfT", cases::runPerfT);
 
         return runTests("All Tests", tests);
@@ -183,13 +185,13 @@ public class Main {
                 testMethod.run();
                 long elapsed = System.currentTimeMillis() - start;
                 passed++;
-                results.put(testName, String.format("PASSED (%d ms)", elapsed));
-                System.out.println(String.format("--> %s: PASSED (%d ms)", testName, elapsed));
+                results.put(testName, String.format("pass (%d ms)", elapsed));
+                System.out.println(String.format("--> %s: pass (%d ms)", testName, elapsed));
             } catch (Throwable t) {
                 long elapsed = System.currentTimeMillis() - start;
                 failed++;
-                results.put(testName, String.format("FAILED: %s (%d ms)", t.getMessage(), elapsed));
-                System.err.println(String.format("--> %s: FAILED (%d ms)", testName, elapsed));
+                results.put(testName, String.format("FAIL: %s (%d ms)", t.getMessage(), elapsed));
+                System.err.println(String.format("--> %s: FAIL (%d ms)", testName, elapsed));
                 t.printStackTrace();
             }
         }
@@ -204,8 +206,8 @@ public class Main {
         }
         System.out.println("--------------------------------------------------------------------------------");
         System.out.println(String.format(" Total Tests : %d", total));
-        System.out.println(String.format(" Passed      : %d", passed));
-        System.out.println(String.format(" Failed      : %d", failed));
+        System.out.println(String.format(" pass        : %d", passed));
+        System.out.println(String.format(" FAIL        : %d", failed));
         System.out.println(String.format(" Total Time  : %.2f s", totalElapsed / 1000.0));
         System.out.println("================================================================================");
 
