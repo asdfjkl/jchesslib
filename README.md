@@ -10,26 +10,6 @@ jchesslib is a chess library for Java. It supports:
 - HTML export
 - Polyglot and PolyglotExt opening books
 
-## Installation
-
-Install via [Maven](https://search.maven.org/artifact/io.github.asdfjkl/jchesslib). 
-Add this dependency to `pom.xml`:
-
-````
-<dependency>
-  <groupId>io.github.asdfjkl</groupId>
-  <artifactId>jchesslib</artifactId>
-  <version>1.2</version>
-</dependency>
-````
-
-Or download the jar [here](https://github.com/asdfjkl/jchesslib/releases).
-
-
-## Documentation
-
-Javadoc for jchesslib is [here](https://asdfjkl.github.io/jchesslib/)
-
 ## Examples
 
 ### Board Creation and Moves
@@ -139,6 +119,12 @@ try {
     Game g = reader.readGame(raf);
 } catch (IOException e) {
     e.printStackTrace();
+} finally {
+    if(raf !=null) {
+        try{raf.close();
+    } catch(IOException e) {
+            e.printStackTrace();
+    }
 }
 ````
 
@@ -166,6 +152,12 @@ try {
     Game g = reader.readGame(raf);
 } catch (IOException e) {
     e.printStackTrace();
+} finally {
+    if(raf !=null) {
+        try{raf.close();
+    } catch(IOException e) {
+        e.printStackTrace();
+    }
 }
 ````
 
@@ -183,6 +175,12 @@ try {
     Game g = reader.readGame(raf);
 } catch (IOException e) {
     e.printStackTrace();
+} finally {
+    if(raf !=null) {
+      try{raf.close();
+    } catch(IOException e) {
+      e.printStackTrace();
+    }
 }
 ````
 
