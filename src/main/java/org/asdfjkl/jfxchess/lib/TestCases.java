@@ -22,6 +22,9 @@ package org.asdfjkl.jfxchess.lib;
 
 import java.io.*;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -342,6 +345,108 @@ public class TestCases {
         }
     }
 
+    public static class PgnTagInfo {
+        public String rawTag;
+        public String normTag;
+        public int lineNumber;
+        public String lineContent;
+
+        public PgnTagInfo(String rawTag, int lineNumber, String lineContent) {
+            this.rawTag = rawTag;
+            this.normTag = rawTag.replaceAll("\\s+", "");
+            this.lineNumber = lineNumber;
+            this.lineContent = lineContent;
+        }
+
+        @Override
+        public String toString() {
+            return "Line " + lineNumber + ": " + rawTag;
+        }
+    }
+
+    public static class PgnParsedContent {
+        public ArrayList<PgnTagInfo> tags = new ArrayList<>();
+        public StringBuilder normMoves = new StringBuilder();
+        public ArrayList<Integer> normMoveLineNumbers = new ArrayList<>();
+        public String[] rawLines;
+    }
+
+    public static PgnParsedContent extractPgnContent(String pgn) {
+        PgnParsedContent parsed = new PgnParsedContent();
+        if (pgn == null) {
+            parsed.rawLines = new String[0];
+            return parsed;
+        }
+
+        parsed.rawLines = pgn.split("\\r?\\n", -1);
+        boolean inComment = false;
+
+        for (int lineIdx = 0; lineIdx < parsed.rawLines.length; lineIdx++) {
+            int lineNum = lineIdx + 1;
+            String rawLine = parsed.rawLines[lineIdx];
+            String line = rawLine.trim();
+
+            if (line.isEmpty() || line.startsWith("%")) {
+                continue;
+            }
+
+            if (!inComment && line.startsWith("[")) {
+                int startTagIdx = 0;
+                while (startTagIdx < line.length() && line.charAt(startTagIdx) == '[') {
+                    int endIdx = line.indexOf(']', startTagIdx);
+                    if (endIdx != -1) {
+                        String tag = line.substring(startTagIdx, endIdx + 1).trim();
+                        parsed.tags.add(new PgnTagInfo(tag, lineNum, rawLine));
+                        startTagIdx = endIdx + 1;
+                        while (startTagIdx < line.length() && Character.isWhitespace(line.charAt(startTagIdx))) {
+                            startTagIdx++;
+                        }
+                    } else {
+                        break;
+                    }
+                }
+
+                if (startTagIdx < line.length()) {
+                    String remainder = line.substring(startTagIdx);
+                    for (int i = 0; i < remainder.length(); i++) {
+                        char c = remainder.charAt(i);
+                        if (c == '{') inComment = true;
+                        if (!Character.isWhitespace(c)) {
+                            parsed.normMoves.append(c);
+                            parsed.normMoveLineNumbers.add(lineNum);
+                        }
+                        if (c == '}') inComment = false;
+                    }
+                }
+                continue;
+            }
+
+            for (int i = 0; i < line.length(); i++) {
+                char c = line.charAt(i);
+                if (c == '{') inComment = true;
+                if (!Character.isWhitespace(c)) {
+                    parsed.normMoves.append(c);
+                    parsed.normMoveLineNumbers.add(lineNum);
+                }
+                if (c == '}') inComment = false;
+            }
+        }
+
+        return parsed;
+    }
+
+    public boolean comparePgnFiles(String expectedPath, String actualPath) {
+        try {
+            String expected = Files.readString(Path.of(expectedPath), StandardCharsets.UTF_8);
+            String actual = Files.readString(Path.of(actualPath), StandardCharsets.UTF_8);
+            return comparePgnStrings(expected, actual);
+        } catch (IOException e) {
+            System.out.println("FAIL: IOException comparing PGN files: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
+    }
+
     public boolean comparePgnStrings(String pgn1, String pgn2) {
         if (pgn1 == null && pgn2 == null) {
             return true;
@@ -353,15 +458,129 @@ public class TestCases {
             return false;
         }
 
-        String norm1 = pgn1.replaceAll("\\s+", "");
-        String norm2 = pgn2.replaceAll("\\s+", "");
+        PgnParsedContent content1 = extractPgnContent(pgn1);
+        PgnParsedContent content2 = extractPgnContent(pgn2);
 
-        if (norm1.equals(norm2)) {
+        // 1. Compare tags independent of order
+        ArrayList<PgnTagInfo> missingIn2 = new ArrayList<>();
+        for (PgnTagInfo t1 : content1.tags) {
+            boolean found = false;
+            for (PgnTagInfo t2 : content2.tags) {
+                if (t1.normTag.equals(t2.normTag)) {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                missingIn2.add(t1);
+            }
+        }
+
+        ArrayList<PgnTagInfo> missingIn1 = new ArrayList<>();
+        for (PgnTagInfo t2 : content2.tags) {
+            boolean found = false;
+            for (PgnTagInfo t1 : content1.tags) {
+                if (t2.normTag.equals(t1.normTag)) {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                missingIn1.add(t2);
+            }
+        }
+
+        if (!missingIn2.isEmpty() || !missingIn1.isEmpty() || content1.tags.size() != content2.tags.size()) {
+            System.out.println("FAIL: PGN tags do not match (ignoring order and whitespace)");
+            System.out.println("  Source tags count:     " + content1.tags.size());
+            System.out.println("  Comparison tags count: " + content2.tags.size());
+            if (!missingIn2.isEmpty()) {
+                System.out.println("  Tags in source but missing in comparison (" + missingIn2.size() + "):");
+                for (int i = 0; i < Math.min(missingIn2.size(), 10); i++) {
+                    PgnTagInfo ti = missingIn2.get(i);
+                    System.out.println("    - Line " + ti.lineNumber + ": " + ti.rawTag);
+                    System.out.println("      Source line text: \"" + ti.lineContent.trim() + "\"");
+                }
+                if (missingIn2.size() > 10) {
+                    System.out.println("    ... and " + (missingIn2.size() - 10) + " more");
+                }
+            }
+            if (!missingIn1.isEmpty()) {
+                System.out.println("  Tags in comparison but missing in source (" + missingIn1.size() + "):");
+                for (int i = 0; i < Math.min(missingIn1.size(), 10); i++) {
+                    PgnTagInfo ti = missingIn1.get(i);
+                    System.out.println("    - Line " + ti.lineNumber + ": " + ti.rawTag);
+                    System.out.println("      Comparison line text: \"" + ti.lineContent.trim() + "\"");
+                }
+                if (missingIn1.size() > 10) {
+                    System.out.println("    ... and " + (missingIn1.size() - 10) + " more");
+                }
+            }
+            return false;
+        }
+
+        // 2. Compare move parts (modulo whitespace and newlines)
+        String m1 = content1.normMoves.toString();
+        String m2 = content2.normMoves.toString();
+
+        if (m1.equals(m2)) {
             return true;
         } else {
-            System.out.println("FAIL: PGN strings do not match (ignoring whitespace/line-breaks)");
-            System.out.println("Expected:\n" + pgn1);
-            System.out.println("Generated:\n" + pgn2);
+            System.out.println("FAIL: PGN move parts do not match (ignoring whitespace/line-breaks)");
+            System.out.println("  Source move length (normalized):     " + m1.length());
+            System.out.println("  Comparison move length (normalized): " + m2.length());
+
+            int minLen = Math.min(m1.length(), m2.length());
+            int diffIdx = -1;
+            for (int i = 0; i < minLen; i++) {
+                if (m1.charAt(i) != m2.charAt(i)) {
+                    diffIdx = i;
+                    break;
+                }
+            }
+            if (diffIdx == -1) {
+                diffIdx = minLen;
+            }
+
+            System.out.println("  First mismatch at normalized character index: " + diffIdx);
+
+            if (diffIdx < content1.normMoveLineNumbers.size()) {
+                int srcLine = content1.normMoveLineNumbers.get(diffIdx);
+                System.out.println("  Source affected line: " + srcLine);
+                if (srcLine >= 1 && srcLine <= content1.rawLines.length) {
+                    System.out.println("  Source line text:     \"" + content1.rawLines[srcLine - 1].trim() + "\"");
+                }
+            } else if (!content1.normMoveLineNumbers.isEmpty()) {
+                int lastLine = content1.normMoveLineNumbers.get(content1.normMoveLineNumbers.size() - 1);
+                System.out.println("  Source ended at line: " + lastLine);
+            }
+
+            if (diffIdx < content2.normMoveLineNumbers.size()) {
+                int compLine = content2.normMoveLineNumbers.get(diffIdx);
+                System.out.println("  Comparison affected line: " + compLine);
+                if (compLine >= 1 && compLine <= content2.rawLines.length) {
+                    System.out.println("  Comparison line text:     \"" + content2.rawLines[compLine - 1].trim() + "\"");
+                }
+            } else if (!content2.normMoveLineNumbers.isEmpty()) {
+                int lastLine = content2.normMoveLineNumbers.get(content2.normMoveLineNumbers.size() - 1);
+                System.out.println("  Comparison ended at line: " + lastLine);
+            }
+
+            int start = Math.max(0, diffIdx - 40);
+            int end1 = Math.min(m1.length(), diffIdx + 40);
+            int end2 = Math.min(m2.length(), diffIdx + 40);
+
+            if (diffIdx < m1.length()) {
+                System.out.println("  Source text near mismatch:     ... " + m1.substring(start, end1) + " ...");
+            }
+            if (diffIdx < m2.length()) {
+                System.out.println("  Comparison text near mismatch: ... " + m2.substring(start, end2) + " ...");
+            }
+
+            if (pgn1.length() < 2000 && pgn2.length() < 2000) {
+                System.out.println("Expected:\n" + pgn1);
+                System.out.println("Generated:\n" + pgn2);
+            }
             return false;
         }
     }
@@ -418,9 +637,7 @@ public class TestCases {
 
         System.out.println("TEST: scanning PGN for game offsets");
         String pgnFile = getPgnPath("test_pgn_03.pgn");
-        PgnReader reader = new PgnReader();
-
-        ArrayList<Long> offsets = reader.scanPgn(pgnFile);
+        PgnChessDatabase db = new PgnChessDatabase();
 
         String[] expectedLines = {
             "[Event \"Barbera Open\"]",
@@ -436,17 +653,22 @@ public class TestCases {
         };
 
         ArrayList<String> errors = new ArrayList<>();
-        if (offsets.size() < expectedLines.length) {
-            errors.add("expected at least " + expectedLines.length + " offsets, but got " + offsets.size());
-        }
+        try {
+            db.open(pgnFile);
+            db.scanGames();
+            ArrayList<GameInfo> entries = db.getIndex();
 
-        int checkCount = Math.min(expectedLines.length, offsets.size());
-        for (int i = 0; i < checkCount; i++) {
-            long offset_i = offsets.get(i);
-            RandomAccessFile raf = null;
-            try {
-                raf = new RandomAccessFile(pgnFile, "r");
+            if (entries.size() < expectedLines.length) {
+                errors.add("expected at least " + expectedLines.length + " entries, but got " + entries.size());
+            }
+
+            int checkCount = Math.min(expectedLines.length, entries.size());
+            for (int i = 0; i < checkCount; i++) {
+                PgnGameInfo pgnInfo = (PgnGameInfo) entries.get(i);
+                long offset_i = pgnInfo.getOffset();
+                RandomAccessFile raf = null;
                 try {
+                    raf = new RandomAccessFile(pgnFile, "r");
                     raf.seek(offset_i);
                     String line = raf.readLine();
                     if (expectedLines[i].equals(line)) {
@@ -458,19 +680,19 @@ public class TestCases {
                 } catch (IOException e) {
                     System.out.println("testing offset " + (i + 1) + " ... FAIL");
                     errors.add("IOException reading offset " + i + " (" + offset_i + "): " + e.getMessage());
-                }
-            } catch (FileNotFoundException e) {
-                System.out.println("testing offset " + (i + 1) + " ... FAIL");
-                errors.add("FileNotFoundException: " + e.getMessage());
-            } finally {
-                if (raf != null) {
-                    try {
-                        raf.close();
-                    } catch (IOException e) {
-                        e.printStackTrace();
+                } finally {
+                    if (raf != null) {
+                        try {
+                            raf.close();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
                     }
                 }
             }
+        } catch (IOException e) {
+            errors.add("IOException opening database: " + e.getMessage());
+            e.printStackTrace();
         }
 
         if (!errors.isEmpty()) {
@@ -499,13 +721,13 @@ public class TestCases {
                 "Nc3 c6 9. Bg5 b5 10. Nxb5 cxb5 11. Bxb5+ Nbd7 12. O-O-O Rd8 13. Rxd7 Rxd7 14. " +
                 "Rd1 Qe6 15. Bxd7+ Nxd7 16. Qb8+ Nxb8 17. Rd8# 1-0";
 
-        OptimizedRandomAccessFile raf = null;
-        PgnReader reader = new PgnReader();
+        PgnChessDatabase db = new PgnChessDatabase();
         PgnPrinter printer = new PgnPrinter();
         boolean passed = false;
         try {
-            raf = new OptimizedRandomAccessFile(pgnFile, "r");
-            Game g = reader.readGame(raf);
+            db.open(pgnFile);
+            db.scanGames();
+            Game g = db.loadGame(0);
             String pgn = printer.printGame(g);
             if (comparePgnStrings(expectedPgn, pgn)) {
                 System.out.println("testing read single pgn game ... pass");
@@ -517,14 +739,6 @@ public class TestCases {
             System.out.println("testing read single pgn game ... FAIL");
             System.out.println("FAIL: IOException while reading PGN file: " + e.getMessage());
             e.printStackTrace();
-        } finally {
-            if (raf != null) {
-                try {
-                    raf.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
         }
 
         if (!passed) {
@@ -537,17 +751,14 @@ public class TestCases {
         System.out.println("TEST: reading all games from test_pgn_02.pgn");
         String middleg = getPgnPath("test_pgn_02.pgn");
 
-        OptimizedRandomAccessFile raf = null;
-        PgnReader reader = new PgnReader();
-        ArrayList<Long> offsets = reader.scanPgn(middleg);
-
+        PgnChessDatabase db = new PgnChessDatabase();
         boolean allPassed = true;
         try {
-            raf = new OptimizedRandomAccessFile(middleg, "r");
-            for (int i = 0; i < offsets.size(); i++) {
-                long offset_i = offsets.get(i);
-                raf.seek(offset_i);
-                Game g = reader.readGame(raf);
+            db.open(middleg);
+            db.scanGames();
+            ArrayList<GameInfo> index = db.getIndex();
+            for (int i = 0; i < index.size(); i++) {
+                Game g = db.loadGame(index.get(i));
                 if (g != null && g.getRootNode() != null) {
                     System.out.println("testing read game " + (i + 1) + " ... pass");
                 } else {
@@ -559,14 +770,6 @@ public class TestCases {
             System.out.println("FAIL: IOException while reading " + middleg + ": " + e.getMessage());
             e.printStackTrace();
             allPassed = false;
-        } finally {
-            if (raf != null) {
-                try {
-                    raf.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
         }
 
         if (!allPassed) {
@@ -578,44 +781,34 @@ public class TestCases {
 
         System.out.println("TEST: reading all games from test_pgn_03.pgn");
         String millbase = getPgnPath("test_pgn_03.pgn");
-        PgnReader reader = new PgnReader();
+        PgnChessDatabase db = new PgnChessDatabase();
 
-        ArrayList<Long> offsets = reader.scanPgn(millbase);
-        if (offsets.size() == 12) {
-            System.out.println("testing scan offsets count (12) ... pass");
-        } else {
-            System.out.println("testing scan offsets count ... FAIL (expected 12, got " + offsets.size() + ")");
-            throw new RuntimeException("pgnReadAllMillBaseTest scan failed");
-        }
-
-        OptimizedRandomAccessFile raf = null;
         boolean allPassed = true;
         try {
-            raf = new OptimizedRandomAccessFile(millbase, "r");
-            for (int i = 0; i < offsets.size(); i++) {
-                long offset_i = offsets.get(i);
-                raf.seek(offset_i);
-                Game g = reader.readGame(raf);
+            db.open(millbase);
+            db.scanGames();
+            ArrayList<GameInfo> index = db.getIndex();
+            if (index.size() == 12) {
+                System.out.println("testing scan offsets count (12) ... pass");
+            } else {
+                System.out.println("testing scan offsets count ... FAIL (expected 12, got " + index.size() + ")");
+                throw new RuntimeException("pgnReadAllMillBaseTest scan failed");
+            }
+
+            for (int i = 0; i < index.size(); i++) {
+                Game g = db.loadGame(index.get(i));
                 if (g == null || g.getRootNode() == null) {
                     allPassed = false;
                     System.out.println("testing read game " + (i + 1) + " ... FAIL");
                 }
             }
             if (allPassed) {
-                System.out.println("testing read all " + offsets.size() + " games ... pass");
+                System.out.println("testing read all " + index.size() + " games ... pass");
             }
         } catch (IOException e) {
             System.out.println("FAIL: IOException while reading " + millbase + ": " + e.getMessage());
             e.printStackTrace();
             allPassed = false;
-        } finally {
-            if (raf != null) {
-                try {
-                    raf.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
         }
 
         if (!allPassed) {
@@ -623,68 +816,71 @@ public class TestCases {
         }
     }
 
-    // using file open/close
+    // using PgnChessDatabase header index verification
     public void pgnReadSingleEntryTestOpenClose() {
 
-        System.out.println("TEST: scanning offsets from PGN, and reading each header w/ multiple fopen/close");
+        System.out.println("TEST: scanning PGN database, reading headers and verifying search");
         String millbase = getPgnPath("test_pgn_03.pgn");
-        PgnReader reader = new PgnReader();
+        PgnChessDatabase db = new PgnChessDatabase();
 
-        ArrayList<Long> offsets = reader.scanPgn(millbase);
-        int matchCount = 0;
-        for (int i = 0; i < offsets.size(); i++) {
-            long offset_i = offsets.get(i);
-            HashMap<String, String> header = reader.readSingleHeader(millbase, offset_i);
-            if ("Barbera Open".equals(header.get("Event"))) {
-                matchCount += 1;
-            }
-        }
-
-        if (matchCount == 3) {
-            System.out.println("testing matching 'Barbera Open' headers (3) ... pass");
-        } else {
-            System.out.println("testing matching 'Barbera Open' headers ... FAIL (expected 3, got " + matchCount + ")");
-            throw new RuntimeException("pgnReadSingleEntryTestOpenClose failed");
-        }
-    }
-
-    // using raf that is kept open
-    public void pgnReadSingleEntryTestSeekWithinRAF() {
-
-        System.out.println("TEST: scanning offsets from PGN, and reading each header, keeping file open");
-        String millbase = getPgnPath("test_pgn_03.pgn");
-        PgnReader reader = new PgnReader();
-
-        ArrayList<Long> offsets = reader.scanPgn(millbase);
-        OptimizedRandomAccessFile raf = null;
-        int matchCount = 0;
         try {
-            raf = new OptimizedRandomAccessFile(millbase, "r");
-            for (int i = 0; i < offsets.size(); i++) {
-                long offset_i = offsets.get(i);
-                HashMap<String, String> header = reader.readSingleHeader(raf, offset_i);
-                if ("Barbera Open".equals(header.get("Event"))) {
+            db.open(millbase);
+            db.scanGames();
+
+            int matchCount = 0;
+            for (GameInfo info : db.getIndex()) {
+                if ("Barbera Open".equals(info.getEvent())) {
                     matchCount += 1;
                 }
             }
+
             if (matchCount == 3) {
                 System.out.println("testing matching 'Barbera Open' headers (3) ... pass");
             } else {
                 System.out.println("testing matching 'Barbera Open' headers ... FAIL (expected 3, got " + matchCount + ")");
-                throw new RuntimeException("pgnReadSingleEntryTestSeekWithinRAF failed");
+                throw new RuntimeException("pgnReadSingleEntryTestOpenClose failed");
             }
         } catch (IOException e) {
-            System.out.println("FAIL: IOException reading " + millbase + ": " + e.getMessage());
+            System.out.println("FAIL: IOException: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("pgnReadSingleEntryTestOpenClose failed");
+        }
+    }
+
+    // using PgnChessDatabase pattern search and reset
+    public void pgnReadSingleEntryTestSeekWithinRAF() {
+
+        System.out.println("TEST: database search by pattern on PgnChessDatabase");
+        String millbase = getPgnPath("test_pgn_03.pgn");
+        PgnChessDatabase db = new PgnChessDatabase();
+
+        try {
+            db.open(millbase);
+            db.scanGames();
+
+            SearchPattern pattern = new SearchPattern();
+            pattern.setEvent("Barbera Open");
+            db.search(pattern);
+
+            ArrayList<GameInfo> results = db.getSearchResults();
+            if (results.size() == 3 && db.isSearchActive()) {
+                System.out.println("testing matching 'Barbera Open' search results (3) ... pass");
+            } else {
+                System.out.println("testing matching 'Barbera Open' search results ... FAIL (expected 3, got " + results.size() + ")");
+                throw new RuntimeException("pgnReadSingleEntryTestSeekWithinRAF failed");
+            }
+
+            db.resetSearch();
+            if (!db.isSearchActive() && db.getSearchResults().isEmpty()) {
+                System.out.println("testing reset search ... pass");
+            } else {
+                System.out.println("testing reset search ... FAIL");
+                throw new RuntimeException("pgnReadSingleEntryTestSeekWithinRAF resetSearch failed");
+            }
+        } catch (IOException e) {
+            System.out.println("FAIL: IOException: " + e.getMessage());
             e.printStackTrace();
             throw new RuntimeException("pgnReadSingleEntryTestSeekWithinRAF failed");
-        } finally {
-            if (raf != null) {
-                try {
-                    raf.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
         }
     }
 
@@ -734,14 +930,14 @@ public class TestCases {
         final boolean expectedResult2 = false;
 
         String kingbase = getPgnPath("test_pgn_04.pgn");
-        OptimizedRandomAccessFile raf = null;
-        PgnReader reader = new PgnReader();
+        PgnChessDatabase db = new PgnChessDatabase();
         boolean passed = false;
         ArrayList<String> errors = new ArrayList<>();
 
         try {
-            raf = new OptimizedRandomAccessFile(kingbase, "r");
-            Game g = reader.readGame(raf);
+            db.open(kingbase);
+            db.scanGames();
+            Game g = db.loadGame(0);
             boolean actualResult1 = g.containsPosition(key1, 0, 100);
             boolean actualResult2 = g.containsPosition(key2, 0, 100);
 
@@ -765,14 +961,6 @@ public class TestCases {
         } catch (IOException e) {
             errors.add("IOException: " + e.getMessage());
             e.printStackTrace();
-        } finally {
-            if (raf != null) {
-                try {
-                    raf.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
         }
 
         if (!passed) {
@@ -867,22 +1055,21 @@ public class TestCases {
 
         String[] expectedGames = { expectedGame1, expectedGame2 };
 
-        PgnReader reader = new PgnReader();
+        PgnChessDatabase db = new PgnChessDatabase();
         PgnPrinter printer = new PgnPrinter();
-        ArrayList<Long> offsets = reader.scanPgn(pgnFile);
-
-        if (offsets.size() != expectedGames.length) {
-            System.out.println("testing scan offsets count ... FAIL (expected " + expectedGames.length + ", got " + offsets.size() + ")");
-            throw new RuntimeException("pgnStressTest scan failed");
-        }
-
-        OptimizedRandomAccessFile raf = null;
         boolean allPassed = true;
         try {
-            raf = new OptimizedRandomAccessFile(pgnFile, "r");
-            for (int i = 0; i < offsets.size(); i++) {
-                raf.seek(offsets.get(i));
-                Game g = reader.readGame(raf);
+            db.open(pgnFile);
+            db.scanGames();
+            ArrayList<GameInfo> index = db.getIndex();
+
+            if (index.size() != expectedGames.length) {
+                System.out.println("testing scan offsets count ... FAIL (expected " + expectedGames.length + ", got " + index.size() + ")");
+                throw new RuntimeException("pgnStressTest scan failed");
+            }
+
+            for (int i = 0; i < index.size(); i++) {
+                Game g = db.loadGame(index.get(i));
                 String printed = printer.printGame(g);
                 if (comparePgnStrings(expectedGames[i], printed)) {
                     System.out.println("testing stress game " + (i + 1) + " ... pass");
@@ -895,14 +1082,6 @@ public class TestCases {
             System.out.println("FAIL: IOException while reading " + pgnFile + ": " + e.getMessage());
             e.printStackTrace();
             allPassed = false;
-        } finally {
-            if (raf != null) {
-                try {
-                    raf.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
         }
 
         if (!allPassed) {
@@ -910,4 +1089,315 @@ public class TestCases {
         }
     }
 
+    public void pgnMiddleGReadWriteCompareTest() {
+
+        System.out.println("TEST: scanning test_pgn_06.pgn, writing to temp.pgn via PgnChessDatabase and comparing");
+        String pgnFile = getPgnPath("test_pgn_06.pgn");
+
+        File tempFile = new File("temp.pgn");
+        tempFile.deleteOnExit();
+
+        boolean readWriteSuccess = true;
+
+        try {
+            PgnChessDatabase srcDb = new PgnChessDatabase();
+            srcDb.open(pgnFile);
+            srcDb.scanGames();
+
+            PgnChessDatabase destDb = new PgnChessDatabase();
+            destDb.createNew(tempFile.getAbsolutePath());
+
+            for (GameInfo info : srcDb.getIndex()) {
+                Game g = srcDb.loadGame(info);
+                destDb.appendGame(g);
+            }
+        } catch (IOException e) {
+            System.out.println("FAIL: IOException during read/write: " + e.getMessage());
+            e.printStackTrace();
+            readWriteSuccess = false;
+        }
+
+        if (!readWriteSuccess) {
+            throw new RuntimeException("pgnMiddleGReadWriteCompareTest read/write failed");
+        }
+
+        if (comparePgnFiles(pgnFile, tempFile.getAbsolutePath())) {
+            System.out.println("testing test_pgn_06.pgn read, write and compare ... pass");
+        } else {
+            System.out.println("testing test_pgn_06.pgn read, write and compare ... FAIL");
+            throw new RuntimeException("pgnMiddleGReadWriteCompareTest comparison failed");
+        }
+    }
+
+    public void pgnGameInfoSurnameExtractionTest() {
+        System.out.println("TEST: GameInfo surname extraction and versus title formatting");
+
+        if (!"Morphy".equals(GameInfo.extractSurname("Morphy, Paul"))) {
+            throw new RuntimeException("Failed surname extraction for 'Morphy, Paul'");
+        }
+        if (!"Morphy".equals(GameInfo.extractSurname("Paul Morphy"))) {
+            throw new RuntimeException("Failed surname extraction for 'Paul Morphy'");
+        }
+        if (!"Karpov".equals(GameInfo.extractSurname("Karpov, Anatoly"))) {
+            throw new RuntimeException("Failed surname extraction for 'Karpov, Anatoly'");
+        }
+        if (!"Stockfish 16".equals(GameInfo.extractSurname("Stockfish 16"))) {
+            throw new RuntimeException("Failed surname extraction for 'Stockfish 16'");
+        }
+        if (!"N.N.".equals(GameInfo.extractSurname("?"))) {
+            throw new RuntimeException("Failed surname extraction for '?'");
+        }
+        if (!"N.N.".equals(GameInfo.extractSurname(null))) {
+            throw new RuntimeException("Failed surname extraction for null");
+        }
+        if (!"N.N.".equals(GameInfo.extractSurname("N.N."))) {
+            throw new RuntimeException("Failed surname extraction for 'N.N.'");
+        }
+
+        if (!"Morphy vs. Brunswick".equals(GameInfo.formatVersusTitle("Morphy, Paul", "Duke of Brunswick"))) {
+            throw new RuntimeException("Failed formatVersusTitle");
+        }
+
+        GameInfo info = new GameInfo();
+        info.setWhite("Kasparov, Garry");
+        info.setBlack("Karpov, Anatoly");
+        if (!"Kasparov".equals(info.getWhiteSurname())) {
+            throw new RuntimeException("Failed info.getWhiteSurname()");
+        }
+        if (!"Karpov".equals(info.getBlackSurname())) {
+            throw new RuntimeException("Failed info.getBlackSurname()");
+        }
+        if (!"Kasparov vs. Karpov".equals(info.getVersusTitle())) {
+            throw new RuntimeException("Failed info.getVersusTitle()");
+        }
+
+        System.out.println("testing surname extraction ... pass");
+    }
+
+    public void chessDatabaseSessionSynchronizationTest() {
+        System.out.println("TEST: PgnChessDatabase lifecycle, listeners, append, replace and delete");
+
+        File tempDbFile;
+        try {
+            tempDbFile = File.createTempFile("test_sync_", ".pgn");
+            tempDbFile.deleteOnExit();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+        PgnChessDatabase db = new PgnChessDatabase();
+        ArrayList<ChessDatabaseEvent> events = new ArrayList<>();
+        ChessDatabaseListener listener = events::add;
+        db.addListener(listener);
+
+        try {
+            db.createNew(tempDbFile.getAbsolutePath());
+            if (!db.isOpen()) {
+                throw new RuntimeException("Database should be open after createNew");
+            }
+            if (events.isEmpty() || events.get(events.size() - 1).getType() != ChessDatabaseEvent.Type.DATABASE_OPENED) {
+                throw new RuntimeException("Expected DATABASE_OPENED event");
+            }
+
+            // Append game 1
+            Game g1 = new Game();
+            g1.setHeader("Event", "Sync Event 1");
+            g1.setHeader("White", "Player 1");
+            g1.setHeader("Black", "Player 2");
+            g1.setHeader("Result", "1-0");
+            g1.getRootNode().setBoard(new Board(true));
+            g1.applyMove(new Move("e2e4"));
+
+            GameInfo info1 = db.appendGame(g1);
+            if (db.getIndex().size() != 1) {
+                throw new RuntimeException("Expected 1 game after append");
+            }
+            if (events.get(events.size() - 1).getType() != ChessDatabaseEvent.Type.GAME_APPENDED) {
+                throw new RuntimeException("Expected GAME_APPENDED event");
+            }
+
+            // Append game 2
+            Game g2 = new Game();
+            g2.setHeader("Event", "Sync Event 2");
+            g2.setHeader("White", "Player 3");
+            g2.setHeader("Black", "Player 4");
+            g2.setHeader("Result", "0-1");
+            g2.getRootNode().setBoard(new Board(true));
+            g2.applyMove(new Move("d2d4"));
+
+            GameInfo info2 = db.appendGame(g2);
+            if (db.getIndex().size() != 2) {
+                throw new RuntimeException("Expected 2 games after second append");
+            }
+
+            // Replace game 1
+            Game g1Updated = new Game();
+            g1Updated.setHeader("Event", "Sync Event 1 Updated");
+            g1Updated.setHeader("White", "Player 1");
+            g1Updated.setHeader("Black", "Player 2");
+            g1Updated.setHeader("Result", "1/2-1/2");
+            g1Updated.getRootNode().setBoard(new Board(true));
+            g1Updated.applyMove(new Move("e2e4"));
+            g1Updated.applyMove(new Move("e7e5"));
+
+            db.replaceGame(g1Updated, info1);
+            if (events.get(events.size() - 1).getType() != ChessDatabaseEvent.Type.GAME_REPLACED) {
+                throw new RuntimeException("Expected GAME_REPLACED event");
+            }
+            Game loadedUpdated = db.loadGame(0);
+            if (!"Sync Event 1 Updated".equals(loadedUpdated.getHeader("Event"))) {
+                throw new RuntimeException("Replaced game does not reflect updated header");
+            }
+
+            // Delete game 2
+            GameInfo currentInfo2 = db.getIndex().get(1);
+            db.deleteGame(currentInfo2);
+            if (events.get(events.size() - 1).getType() != ChessDatabaseEvent.Type.GAME_DELETED) {
+                throw new RuntimeException("Expected GAME_DELETED event");
+            }
+            if (db.getIndex().size() != 1) {
+                throw new RuntimeException("Expected 1 game after delete");
+            }
+
+            db.removeListener(listener);
+            db.close();
+            if (db.isOpen()) {
+                throw new RuntimeException("Database should be closed");
+            }
+
+            System.out.println("testing chess database session synchronization ... pass");
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public void pgnDocumentSessionSynchronizationTest() {
+        System.out.println("TEST: PgnGameInfo modifiedGame caching and synchronization");
+
+        PgnGameInfo pgnInfo = new PgnGameInfo();
+        if (pgnInfo.isModified()) {
+            throw new RuntimeException("New PgnGameInfo should not be modified");
+        }
+        if (pgnInfo.getModifiedGame() != null) {
+            throw new RuntimeException("New PgnGameInfo should not have modifiedGame");
+        }
+
+        Game g = new Game();
+        g.setHeader("Event", "Buffer Test");
+        pgnInfo.setModifiedGame(g);
+        pgnInfo.setModified(true);
+
+        if (!pgnInfo.isModified() || pgnInfo.getModifiedGame() != g) {
+            throw new RuntimeException("Modified game buffer not retained");
+        }
+
+        pgnInfo.setModified(false);
+        pgnInfo.setModifiedGame(null);
+        if (pgnInfo.isModified() || pgnInfo.getModifiedGame() != null) {
+            throw new RuntimeException("Clearing modified status failed");
+        }
+
+        System.out.println("testing pgn document session synchronization ... pass");
+    }
+
+    public void workspaceSessionIsolationTest() {
+        System.out.println("TEST: workspace session isolation between multiple database instances");
+
+        File temp1, temp2;
+        try {
+            temp1 = File.createTempFile("iso_1_", ".pgn");
+            temp2 = File.createTempFile("iso_2_", ".pgn");
+            temp1.deleteOnExit();
+            temp2.deleteOnExit();
+
+            PgnChessDatabase db1 = new PgnChessDatabase();
+            PgnChessDatabase db2 = new PgnChessDatabase();
+
+            db1.createNew(temp1.getAbsolutePath());
+            db2.createNew(temp2.getAbsolutePath());
+
+            Game g = new Game();
+            g.setHeader("Event", "Isolation Event");
+            g.getRootNode().setBoard(new Board(true));
+            g.applyMove(new Move("e2e4"));
+
+            db1.appendGame(g);
+
+            if (db1.getIndex().size() != 1) {
+                throw new RuntimeException("db1 should have 1 game");
+            }
+            if (!db2.getIndex().isEmpty()) {
+                throw new RuntimeException("db2 should have 0 games (isolation breached)");
+            }
+
+            SearchPattern pattern = new SearchPattern();
+            pattern.setEvent("Isolation Event");
+            db1.search(pattern);
+
+            if (!db1.isSearchActive() || db2.isSearchActive()) {
+                throw new RuntimeException("Search active state leaked between databases");
+            }
+
+            db1.close();
+            if (db1.isOpen() || !db2.isOpen()) {
+                throw new RuntimeException("Closing db1 affected db2 state");
+            }
+
+            db2.close();
+            System.out.println("testing workspace session isolation ... pass");
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public void browserTabBehaviorTest() {
+        System.out.println("TEST: database browsing and navigation behavior");
+        String pgnFile = getPgnPath("test_pgn_03.pgn");
+        PgnChessDatabase db = new PgnChessDatabase();
+
+        try {
+            db.open(pgnFile);
+            db.scanGames();
+
+            if (!db.isOpen()) {
+                throw new RuntimeException("Database should be open");
+            }
+            if (db.getFilename().isEmpty() || db.getPath() == null) {
+                throw new RuntimeException("Database filename or path is empty");
+            }
+
+            ArrayList<GameInfo> index = db.getIndex();
+            if (index.isEmpty()) {
+                throw new RuntimeException("Index should not be empty");
+            }
+
+            GameInfo first = index.get(0);
+            if (db.indexOf(first) != 0) {
+                throw new RuntimeException("indexOf first game should be 0");
+            }
+
+            Game gByIndex = db.loadGame(0);
+            Game gByInfo = db.loadGame(first);
+            if (gByIndex == null || gByInfo == null) {
+                throw new RuntimeException("Failed to load game by index or info");
+            }
+
+            boolean outOfBoundsCaught = false;
+            try {
+                db.loadGame(-1);
+            } catch (IndexOutOfBoundsException e) {
+                outOfBoundsCaught = true;
+            }
+            if (!outOfBoundsCaught) {
+                throw new RuntimeException("Expected IndexOutOfBoundsException for index -1");
+            }
+
+            db.close();
+            System.out.println("testing browser tab behavior ... pass");
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
 }
+

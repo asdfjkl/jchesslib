@@ -1,5 +1,5 @@
 /* JFXChess - A Chess Graphical User Interface
- * Copyright (C) 2020-2025 Dominik Klein
+ * Copyright (C) 2020-2026 Dominik Klein
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -26,127 +26,147 @@ import java.util.Map;
 public class Main {
 
     public static void main(String[] args) {
+
         if (args.length == 0) {
-            printHelp();
+            boolean success = runAllTests();
+            if (!success) {
+                System.exit(1);
+            }
             return;
         }
 
         boolean runAll = false;
         boolean runLogic = false;
-        boolean runPerft = false;
         boolean runPgn = false;
-        String pgnFile = null;
-        boolean printOutput = true;
+        boolean runSession = false;
+        boolean runPerft = false;
+        boolean hasOption = false;
 
         for (String arg : args) {
-            switch (arg) {
-                case "--help":
-                case "-h":
-                    printHelp();
-                    return;
-                case "--all":
-                case "run-all-tests":
-                    runAll = true;
-                    break;
-                case "--logic-tests":
-                    runLogic = true;
-                    break;
-                case "--perft":
-                    runPerft = true;
-                    break;
-                case "--pgn":
-                    runPgn = true;
-                    break;
-                case "noout":
-                    printOutput = false;
-                    break;
-                default:
-                    if (arg.startsWith("-")) {
-                        System.err.println("Unknown option: " + arg);
-                        printHelp();
-                        System.exit(1);
-                    } else if (pgnFile == null) {
-                        pgnFile = arg;
-                    }
-                    break;
+            if ("--help".equals(arg) || "-h".equals(arg) || "help".equals(arg)) {
+                printHelp();
+                return;
+            } else if ("--all-tests".equals(arg) || "--all".equals(arg) || "run-all-tests".equals(arg)) {
+                runAll = true;
+                hasOption = true;
+            } else if ("--logic-tests".equals(arg) || "--logic".equals(arg)) {
+                runLogic = true;
+                hasOption = true;
+            } else if ("--pgn-tests".equals(arg) || "--pgn".equals(arg)) {
+                runPgn = true;
+                hasOption = true;
+            } else if ("--run-session-tests".equals(arg) || "--session-tests".equals(arg) || "--session".equals(arg)) {
+                runSession = true;
+                hasOption = true;
+            } else if ("--perft".equals(arg)) {
+                runPerft = true;
+                hasOption = true;
             }
         }
 
-        if (pgnFile != null) {
-            processPgnFile(pgnFile, printOutput);
+        if (hasOption) {
+            TestCases cases = new TestCases();
+            Map<String, Runnable> selectedTests = new LinkedHashMap<>();
+
+            if (runAll || runLogic) {
+                selectedTests.put("fenTest", cases::fenTest);
+                selectedTests.put("runBitSetTest", cases::runBitSetTest);
+                selectedTests.put("runSanTest", cases::runSanTest);
+                selectedTests.put("runZobristTest", cases::runZobristTest);
+            }
+
+            if (runAll || runPgn) {
+                selectedTests.put("runPgnPrintTest", cases::runPgnPrintTest);
+                selectedTests.put("readGamesByStringTest", cases::readGamesByStringTest);
+                selectedTests.put("pgnReadGameTest", cases::pgnReadGameTest);
+                selectedTests.put("pgnReadMiddleGTest", cases::pgnReadMiddleGTest);
+                selectedTests.put("pgnScanTest", cases::pgnScanTest);
+                selectedTests.put("pgnReadSingleEntryTestOpenClose", cases::pgnReadSingleEntryTestOpenClose);
+                selectedTests.put("pgnReadSingleEntryTestSeekWithinRAF", cases::pgnReadSingleEntryTestSeekWithinRAF);
+                selectedTests.put("pgnReadAllMillBaseTest", cases::pgnReadAllMillBaseTest);
+                selectedTests.put("runPosHashTest", cases::runPosHashTest);
+                selectedTests.put("pgnMoveAmbiguityUTFTest", cases::pgnMoveAmbiguityUTFTest);
+                selectedTests.put("pgnMiddleGReadWriteCompareTest", cases::pgnMiddleGReadWriteCompareTest);
+                selectedTests.put("pgnGameInfoSurnameExtractionTest", cases::pgnGameInfoSurnameExtractionTest);
+            }
+
+            if (runAll || runSession) {
+                selectedTests.put("workspaceSessionIsolationTest", cases::workspaceSessionIsolationTest);
+                selectedTests.put("pgnDocumentSessionSynchronizationTest", cases::pgnDocumentSessionSynchronizationTest);
+                selectedTests.put("chessDatabaseSessionSynchronizationTest", cases::chessDatabaseSessionSynchronizationTest);
+                selectedTests.put("browserTabBehaviorTest", cases::browserTabBehaviorTest);
+            }
+
+            if (runAll || runPerft) {
+                selectedTests.put("runPerfT", cases::runPerfT);
+            }
+
+            String suiteName;
+            if (runAll) {
+                suiteName = "All Tests";
+            } else {
+                ArrayList<String> parts = new ArrayList<>();
+                if (runLogic) parts.add("Logic Tests");
+                if (runPgn) parts.add("PGN Tests");
+                if (runSession) parts.add("Session Tests");
+                if (runPerft) parts.add("Perft Tests");
+                suiteName = String.join(", ", parts);
+            }
+
+            boolean success = runTests(suiteName, selectedTests);
+            if (!success) {
+                System.exit(1);
+            }
             return;
         }
 
-        if (!runAll && !runLogic && !runPerft && !runPgn) {
-            printHelp();
-            return;
-        }
-
-        TestCases cases = new TestCases();
-        Map<String, Runnable> selectedTests = new LinkedHashMap<>();
-
-        if (runAll || runLogic) {
-            selectedTests.put("runBitSetTest", cases::runBitSetTest);
-            selectedTests.put("fenTest", cases::fenTest);
-            selectedTests.put("runSanTest", cases::runSanTest);
-            selectedTests.put("runZobristTest", cases::runZobristTest);
-            selectedTests.put("runPosHashTest", cases::runPosHashTest);
-        }
-
-        if (runAll || runPgn) {
-            selectedTests.put("runPgnPrintTest", cases::runPgnPrintTest);
-            selectedTests.put("readGamesByStringTest", cases::readGamesByStringTest);
-            selectedTests.put("pgnReadGameTest", cases::pgnReadGameTest);
-            selectedTests.put("pgnReadMiddleGTest", cases::pgnReadMiddleGTest);
-            selectedTests.put("pgnScanTest", cases::pgnScanTest);
-            selectedTests.put("pgnReadSingleEntryTestOpenClose", cases::pgnReadSingleEntryTestOpenClose);
-            selectedTests.put("pgnReadSingleEntryTestSeekWithinRAF", cases::pgnReadSingleEntryTestSeekWithinRAF);
-            selectedTests.put("pgnReadAllMillBaseTest", cases::pgnReadAllMillBaseTest);
-            selectedTests.put("pgnStressTest", cases::pgnMoveAmbiguityUTFTest);
-        }
-
-        if (runAll || runPerft) {
-            selectedTests.put("runPerfT", cases::runPerfT);
-        }
-
-        String suiteName;
-        if (runAll) {
-            suiteName = "All Tests";
+        // Support legacy single-test argument triggers or file execution
+        String firstArg = args[0];
+        if ("workspace-session-isolation-test".equals(firstArg)) {
+            new TestCases().workspaceSessionIsolationTest();
+        } else if ("pgn-document-session-synchronization-test".equals(firstArg)) {
+            new TestCases().pgnDocumentSessionSynchronizationTest();
+        } else if ("chess-database-test".equals(firstArg)) {
+            new TestCases().chessDatabaseSessionSynchronizationTest();
+        } else if ("pgn-game-info-surname-test".equals(firstArg)) {
+            new TestCases().pgnGameInfoSurnameExtractionTest();
+        } else if ("browser-tab-behavior-test".equals(firstArg)) {
+            new TestCases().browserTabBehaviorTest();
         } else {
-            ArrayList<String> parts = new ArrayList<>();
-            if (runLogic) parts.add("Logic Tests");
-            if (runPgn) parts.add("PGN Tests");
-            if (runPerft) parts.add("Perft Tests");
-            suiteName = String.join(", ", parts);
-        }
-
-        boolean success = runTests(suiteName, selectedTests);
-        if (!success) {
-            System.exit(1);
+            boolean printOutput = true;
+            if (args.length > 1 && "noout".equals(args[1])) {
+                printOutput = false;
+            }
+            processPgnFile(firstArg, printOutput);
         }
     }
 
     public static void printHelp() {
         System.out.println("Usage:");
-        System.out.println("  java -jar jfxchess.jar [OPTIONS]");
-        System.out.println("  java -jar jfxchess.jar <pgn-file> [noout]");
+        System.out.println("  java -jar jchesslib.jar [OPTIONS]");
+        System.out.println("  java -jar jchesslib.jar <pgn-file> [noout]");
         System.out.println();
         System.out.println("Options:");
-        System.out.println("  --all          Run all tests (logic, pgn, and perft)");
-        System.out.println("  --logic-tests  Run core logic tests (runBitSetTest, fenTest, runSanTest, runZobristTest, runPosHashTest)");
-        System.out.println("  --perft        Run move generation perft tests (runPerfT)");
-        System.out.println("  --pgn          Run PGN reading, scanning, and printing tests");
-        System.out.println("  --help, -h     Display this help message and exit");
+        System.out.println("  (no parameters)      Run all tests");
+        System.out.println("  --all-tests          Run all tests (logic, pgn, session, perft)");
+        System.out.println("  --perft              Run move generation perft tests (runPerfT)");
+        System.out.println("  --logic-tests        Run core logic tests (fenTest, runBitSetTest, runSanTest, runZobristTest)");
+        System.out.println("  --pgn-tests          Run all tests involving PGN");
+        System.out.println("  --run-session-tests  Run session/database tests (workspace, pgn document, chess database, browser tab)");
+        System.out.println("  --help, -h           Display this help message and exit");
     }
 
     public static boolean runAllTests() {
         TestCases cases = new TestCases();
         Map<String, Runnable> tests = new LinkedHashMap<>();
-        tests.put("runBitSetTest", cases::runBitSetTest);
+
+        // Logic tests
         tests.put("fenTest", cases::fenTest);
+        tests.put("runBitSetTest", cases::runBitSetTest);
         tests.put("runSanTest", cases::runSanTest);
         tests.put("runZobristTest", cases::runZobristTest);
-        tests.put("runPosHashTest", cases::runPosHashTest);
+
+        // PGN tests
         tests.put("runPgnPrintTest", cases::runPgnPrintTest);
         tests.put("readGamesByStringTest", cases::readGamesByStringTest);
         tests.put("pgnReadGameTest", cases::pgnReadGameTest);
@@ -155,7 +175,18 @@ public class Main {
         tests.put("pgnReadSingleEntryTestOpenClose", cases::pgnReadSingleEntryTestOpenClose);
         tests.put("pgnReadSingleEntryTestSeekWithinRAF", cases::pgnReadSingleEntryTestSeekWithinRAF);
         tests.put("pgnReadAllMillBaseTest", cases::pgnReadAllMillBaseTest);
-        tests.put("pgnStressTest", cases::pgnMoveAmbiguityUTFTest);
+        tests.put("runPosHashTest", cases::runPosHashTest);
+        tests.put("pgnMoveAmbiguityUTFTest", cases::pgnMoveAmbiguityUTFTest);
+        tests.put("pgnMiddleGReadWriteCompareTest", cases::pgnMiddleGReadWriteCompareTest);
+        tests.put("pgnGameInfoSurnameExtractionTest", cases::pgnGameInfoSurnameExtractionTest);
+
+        // Session tests
+        tests.put("workspaceSessionIsolationTest", cases::workspaceSessionIsolationTest);
+        tests.put("pgnDocumentSessionSynchronizationTest", cases::pgnDocumentSessionSynchronizationTest);
+        tests.put("chessDatabaseSessionSynchronizationTest", cases::chessDatabaseSessionSynchronizationTest);
+        tests.put("browserTabBehaviorTest", cases::browserTabBehaviorTest);
+
+        // Perft tests
         tests.put("runPerfT", cases::runPerfT);
 
         return runTests("All Tests", tests);
@@ -202,7 +233,7 @@ public class Main {
         System.out.println("                              TEST EXECUTION REPORT                             ");
         System.out.println("================================================================================");
         for (Map.Entry<String, String> res : results.entrySet()) {
-            System.out.println(String.format(" - %-38s : %s", res.getKey(), res.getValue()));
+            System.out.println(String.format(" - %-42s : %s", res.getKey(), res.getValue()));
         }
         System.out.println("--------------------------------------------------------------------------------");
         System.out.println(String.format(" Total Tests : %d", total));
@@ -215,34 +246,28 @@ public class Main {
     }
 
     private static void processPgnFile(String filename, boolean printOutput) {
-        PgnReader reader = new PgnReader();
-        PgnPrinter printer = new PgnPrinter();
-        ArrayList<Long> offsets = reader.scanPgn(filename);
-
-        for (int i = 0; i < offsets.size(); i++) {
-            OptimizedRandomAccessFile raf = null;
-            try {
-                raf = new OptimizedRandomAccessFile(filename, "r");
-                raf.seek(offsets.get(i));
-                Game g = reader.readGame(raf);
-                if (printOutput) {
-                    System.out.println(printer.printGame(g));
-                    System.out.println("\n");
-                }
-                raf.close();
-            } catch (IOException e) {
-                System.out.println("error reading: " + filename);
-                System.out.println("game nr......: " + i);
-                e.printStackTrace();
-            } finally {
-                if (raf != null) {
-                    try {
-                        raf.close();
-                    } catch (IOException e) {
-                        e.printStackTrace();
+        try {
+            PgnChessDatabase db = new PgnChessDatabase();
+            db.open(filename);
+            db.scanGames();
+            PgnPrinter printer = new PgnPrinter();
+            ArrayList<GameInfo> index = db.getIndex();
+            for (int i = 0; i < index.size(); i++) {
+                try {
+                    Game g = db.loadGame(index.get(i));
+                    if (printOutput) {
+                        System.out.println(printer.printGame(g));
+                        System.out.println("\n");
                     }
+                } catch (IOException e) {
+                    System.out.println("error reading: " + filename);
+                    System.out.println("game nr......: " + i);
+                    e.printStackTrace();
                 }
             }
+        } catch (IOException e) {
+            System.out.println("error opening database: " + filename);
+            e.printStackTrace();
         }
     }
 }

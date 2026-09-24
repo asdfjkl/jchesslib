@@ -1,5 +1,5 @@
 /* JFXChess - A Chess Graphical User Interface
- * Copyright (C) 2020-2026 Dominik Klein
+ * Copyright (C) 2026 Dominik Klein
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -18,43 +18,6 @@
 
 package org.asdfjkl.jfxchess.lib;
 
-import java.util.UUID;
-
-public class PgnGameInfo extends GameInfo {
-
-    private long offset = 0;
-    private boolean modifiedFlag = false;
-    Game modifiedGame = null;
-
-    public PgnGameInfo() {
-        super();
-    }
-
-    public PgnGameInfo(UUID id) {
-        super(id);
-    }
-
-    public long getOffset() {
-        return offset;
-    }
-
-    public void setOffset(long offset) {
-        this.offset = offset;
-    }
-
-    public boolean isModified() {
-        return modifiedFlag;
-    }
-
-    public void setModified(boolean modified) {
-        this.modifiedFlag = modified;
-    }
-
-    public Game getModifiedGame() {
-        return modifiedGame;
-    }
-
-    public void setModifiedGame(Game modifiedGame) {
-        this.modifiedGame = modifiedGame;
-    }
+public interface ChessDatabaseListener {
+    void onDatabaseChanged(ChessDatabaseEvent event);
 }
