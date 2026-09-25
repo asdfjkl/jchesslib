@@ -40,6 +40,7 @@ public class Main {
         boolean runPgn = false;
         boolean runSession = false;
         boolean runPerft = false;
+        boolean runScid = false;
         boolean hasOption = false;
 
         for (String arg : args) {
@@ -60,6 +61,9 @@ public class Main {
                 hasOption = true;
             } else if ("--perft".equals(arg)) {
                 runPerft = true;
+                hasOption = true;
+            } else if ("--scid-tests".equals(arg) || "--scid".equals(arg) || "--scid5-tests".equals(arg)) {
+                runScid = true;
                 hasOption = true;
             }
         }
@@ -97,6 +101,14 @@ public class Main {
                 selectedTests.put("browserTabBehaviorTest", cases::browserTabBehaviorTest);
             }
 
+            if (runAll || runScid) {
+                selectedTests.put("scid5ReadSampleDatabaseIndexTest", cases::scid5ReadSampleDatabaseIndexTest);
+                selectedTests.put("scid5LoadGamesTest", cases::scid5LoadGamesTest);
+                selectedTests.put("scid5RoundTripEncodeDecodeTest", cases::scid5RoundTripEncodeDecodeTest);
+                selectedTests.put("scid5WriteOperationsTest", cases::scid5WriteOperationsTest);
+                selectedTests.put("scid5SearchTest", cases::scid5SearchTest);
+            }
+
             if (runAll || runPerft) {
                 selectedTests.put("runPerfT", cases::runPerfT);
             }
@@ -109,6 +121,7 @@ public class Main {
                 if (runLogic) parts.add("Logic Tests");
                 if (runPgn) parts.add("PGN Tests");
                 if (runSession) parts.add("Session Tests");
+                if (runScid) parts.add("SCID5 Tests");
                 if (runPerft) parts.add("Perft Tests");
                 suiteName = String.join(", ", parts);
             }
@@ -148,11 +161,12 @@ public class Main {
         System.out.println();
         System.out.println("Options:");
         System.out.println("  (no parameters)      Run all tests");
-        System.out.println("  --all-tests          Run all tests (logic, pgn, session, perft)");
+        System.out.println("  --all-tests          Run all tests (logic, pgn, session, scid5, perft)");
         System.out.println("  --perft              Run move generation perft tests (runPerfT)");
         System.out.println("  --logic-tests        Run core logic tests (fenTest, runBitSetTest, runSanTest, runZobristTest)");
         System.out.println("  --pgn-tests          Run all tests involving PGN");
         System.out.println("  --run-session-tests  Run session/database tests (workspace, pgn document, chess database, browser tab)");
+        System.out.println("  --scid-tests         Run tests for SCID5 database support");
         System.out.println("  --help, -h           Display this help message and exit");
     }
 
@@ -179,6 +193,13 @@ public class Main {
         tests.put("pgnMoveAmbiguityUTFTest", cases::pgnMoveAmbiguityUTFTest);
         tests.put("pgnMiddleGReadWriteCompareTest", cases::pgnMiddleGReadWriteCompareTest);
         tests.put("pgnGameInfoSurnameExtractionTest", cases::pgnGameInfoSurnameExtractionTest);
+
+        // SCID5 tests
+        tests.put("scid5ReadSampleDatabaseIndexTest", cases::scid5ReadSampleDatabaseIndexTest);
+        tests.put("scid5LoadGamesTest", cases::scid5LoadGamesTest);
+        tests.put("scid5RoundTripEncodeDecodeTest", cases::scid5RoundTripEncodeDecodeTest);
+        tests.put("scid5WriteOperationsTest", cases::scid5WriteOperationsTest);
+        tests.put("scid5SearchTest", cases::scid5SearchTest);
 
         // Session tests
         tests.put("workspaceSessionIsolationTest", cases::workspaceSessionIsolationTest);

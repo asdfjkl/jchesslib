@@ -26,6 +26,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 
 public class TestCases {
@@ -92,6 +93,49 @@ public class TestCases {
             } else {
                 try {
                     File tempFile = File.createTempFile("chess_" + filename, ".pgn");
+                    tempFile.deleteOnExit();
+                    try (InputStream in = url.openStream();
+                         FileOutputStream out = new FileOutputStream(tempFile)) {
+                        in.transferTo(out);
+                    }
+                    return tempFile.getAbsolutePath();
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        }
+        return filename;
+    }
+
+    public static String getScidPath(String filename) {
+        File f = new File(filename);
+        if (f.exists()) return f.getAbsolutePath();
+
+        String[] candidatePaths = {
+            "src/main/resources/scid5/" + filename,
+            "src/main/resources/" + filename,
+            "resources/scid5/" + filename,
+            "scid5/" + filename
+        };
+        for (String p : candidatePaths) {
+            f = new File(p);
+            if (f.exists()) return f.getAbsolutePath();
+        }
+
+        URL url = TestCases.class.getClassLoader().getResource("scid5/" + filename);
+        if (url == null) {
+            url = TestCases.class.getClassLoader().getResource(filename);
+        }
+        if (url != null) {
+            if ("file".equals(url.getProtocol())) {
+                try {
+                    return new File(url.toURI()).getAbsolutePath();
+                } catch (Exception e) {
+                    return new File(url.getPath()).getAbsolutePath();
+                }
+            } else {
+                try {
+                    File tempFile = File.createTempFile("scid5_" + filename, ".tmp");
                     tempFile.deleteOnExit();
                     try (InputStream in = url.openStream();
                          FileOutputStream out = new FileOutputStream(tempFile)) {
@@ -343,32 +387,6 @@ public class TestCases {
             }
             throw new RuntimeException("runBitSetTest failed");
         }
-    }
-
-    public static class PgnTagInfo {
-        public String rawTag;
-        public String normTag;
-        public int lineNumber;
-        public String lineContent;
-
-        public PgnTagInfo(String rawTag, int lineNumber, String lineContent) {
-            this.rawTag = rawTag;
-            this.normTag = rawTag.replaceAll("\\s+", "");
-            this.lineNumber = lineNumber;
-            this.lineContent = lineContent;
-        }
-
-        @Override
-        public String toString() {
-            return "Line " + lineNumber + ": " + rawTag;
-        }
-    }
-
-    public static class PgnParsedContent {
-        public ArrayList<PgnTagInfo> tags = new ArrayList<>();
-        public StringBuilder normMoves = new StringBuilder();
-        public ArrayList<Integer> normMoveLineNumbers = new ArrayList<>();
-        public String[] rawLines;
     }
 
     public static PgnParsedContent extractPgnContent(String pgn) {
@@ -1399,5 +1417,674 @@ public class TestCases {
         }
     }
 
+    public void scid5ReadSampleDatabaseIndexTest() {
+        System.out.println("TEST: reading SCID5 sample database index and namebase");
+        String scidFile = getScidPath("sample_db.si5");
+        Scid5ChessDatabase db = new Scid5ChessDatabase();
+        try {
+            db.open(scidFile);
+            db.scanGames();
+
+            if (!db.isOpen()) {
+                throw new RuntimeException("SCID5 database should be open");
+            }
+
+            ArrayList<GameInfo> index = db.getIndex();
+            if (index.size() != 26) {
+                throw new RuntimeException("Expected 26 games in sample_db, got: " + index.size());
+            }
+
+            // Game 0: Morphy vs Duke of Brunswick & Count Isouard (Paris Opera)
+            GameInfo g0 = index.get(0);
+            if (!(g0 instanceof Scid5GameInfo scid0)) {
+                throw new RuntimeException("Game 0 should be Scid5GameInfo");
+            }
+            if (!"Morphy, Paul".equals(scid0.getWhite())) {
+                throw new RuntimeException("Game 0 White mismatch: " + scid0.getWhite());
+            }
+            if (!"Duke of Brunswick and Count Isouard".equals(scid0.getBlack())) {
+                throw new RuntimeException("Game 0 Black mismatch: " + scid0.getBlack());
+            }
+            if (!"Paris Opera".equals(scid0.getEvent())) {
+                throw new RuntimeException("Game 0 Event mismatch: " + scid0.getEvent());
+            }
+            if (!"Paris FRA".equals(scid0.getSite())) {
+                throw new RuntimeException("Game 0 Site mismatch: " + scid0.getSite());
+            }
+            if (!"1858.10.21".equals(scid0.getDate())) {
+                throw new RuntimeException("Game 0 Date mismatch: " + scid0.getDate());
+            }
+            if (!"1".equals(scid0.getRound())) {
+                throw new RuntimeException("Game 0 Round mismatch: " + scid0.getRound());
+            }
+            if (!"1-0".equals(scid0.getResult())) {
+                throw new RuntimeException("Game 0 Result mismatch: " + scid0.getResult());
+            }
+            if (!"C41".equals(scid0.getEco())) {
+                throw new RuntimeException("Game 0 ECO mismatch: " + scid0.getEco());
+            }
+            if (scid0.getSg5Offset() != 0 || scid0.getSg5Length() != 38) {
+                throw new RuntimeException("Game 0 offset/length mismatch: off=" + scid0.getSg5Offset() + " len=" + scid0.getSg5Length());
+            }
+            if (scid0.getHalfMoves() != 33) {
+                throw new RuntimeException("Game 0 halfMoves mismatch: " + scid0.getHalfMoves());
+            }
+            if (!"Morphy".equals(scid0.getWhiteSurname())) {
+                throw new RuntimeException("Game 0 white surname mismatch: " + scid0.getWhiteSurname());
+            }
+
+            // Game 4: Fischer vs Spassky
+            GameInfo g4 = index.get(4);
+            if (!"Fischer, Robert James".equals(g4.getWhite()) || !"Spassky, Boris V".equals(g4.getBlack())) {
+                throw new RuntimeException("Game 4 players mismatch: " + g4.getWhite() + " vs " + g4.getBlack());
+            }
+            if (!"World Championship Match 1972".equals(g4.getEvent())) {
+                throw new RuntimeException("Game 4 event mismatch: " + g4.getEvent());
+            }
+            if (!"1972.07.23".equals(g4.getDate())) {
+                throw new RuntimeException("Game 4 date mismatch: " + g4.getDate());
+            }
+
+            // Game 13: Kramnik vs Anand (promotion game)
+            Scid5GameInfo scid13 = (Scid5GameInfo) index.get(13);
+            if (!"Kramnik, Vladimir".equals(scid13.getWhite()) || !"Anand, Viswanathan".equals(scid13.getBlack())) {
+                throw new RuntimeException("Game 13 players mismatch: " + scid13.getWhite() + " vs " + scid13.getBlack());
+            }
+            if (!scid13.hasPromotion()) {
+                throw new RuntimeException("Game 13 should have promotion flag set");
+            }
+
+            // Search functionality: White player contains "Fischer"
+            SearchPattern fischerSearch = new SearchPattern();
+            fischerSearch.setWhiteName("Fischer");
+            db.search(fischerSearch);
+            if (!db.isSearchActive() || db.getSearchResults().size() != 2) {
+                throw new RuntimeException("Expected 2 Fischer search results, got: " + db.getSearchResults().size());
+            }
+
+            // Search by Event: "World Championship Match 1972" -> 1 match (Game 4)
+            SearchPattern eventSearch = new SearchPattern();
+            eventSearch.setEvent("World Championship Match 1972");
+            db.search(eventSearch);
+            if (!db.isSearchActive() || db.getSearchResults().size() != 1) {
+                throw new RuntimeException("Expected 1 WCM 1972 search result, got: " + db.getSearchResults().size());
+            }
+
+            db.resetSearch();
+            if (db.isSearchActive() || !db.getSearchResults().isEmpty()) {
+                throw new RuntimeException("Reset search failed");
+            }
+
+            db.close();
+            if (db.isOpen()) {
+                throw new RuntimeException("Database should be closed");
+            }
+
+            System.out.println("testing reading SCID5 sample database index ... pass");
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public void scid5LoadGamesTest() {
+        try {
+            String dbPath = getScidPath("sample_db.si5");
+            Scid5ChessDatabase db = new Scid5ChessDatabase();
+            db.open(dbPath);
+            db.scanGames();
+
+            ArrayList<GameInfo> index = db.getIndex();
+            if (index.size() != 26) {
+                throw new RuntimeException("Expected 26 games in SCID5 database, got " + index.size());
+            }
+
+            // 1. Verify Game 0: Morphy Opera Game
+            Game g0 = db.loadGame(index.get(0));
+            if (!"Morphy, Paul".equals(g0.getHeader("White"))) {
+                throw new RuntimeException("Game 0 White header mismatch: " + g0.getHeader("White"));
+            }
+            if (!"Duke of Brunswick and Count Isouard".equals(g0.getHeader("Black"))) {
+                throw new RuntimeException("Game 0 Black header mismatch: " + g0.getHeader("Black"));
+            }
+            if (g0.getResult() != CONSTANTS.RES_WHITE_WINS) {
+                throw new RuntimeException("Game 0 result mismatch: " + g0.getResult());
+            }
+            if (!"C41".equals(g0.getHeader("ECO"))) {
+                throw new RuntimeException("Game 0 ECO mismatch: " + g0.getHeader("ECO"));
+            }
+            // End node must be checkmate with Rd8#
+            GameNode end0 = g0.getEndNode();
+            if (!end0.getBoard().isCheckmate()) {
+                throw new RuntimeException("Game 0 final position should be checkmate");
+            }
+            if (!"Rd8#".equals(end0.getSan())) {
+                throw new RuntimeException("Game 0 final move should be Rd8#, got: " + end0.getSan());
+            }
+
+            // 2. Verify Game 4: Fischer vs Spassky (Game 6)
+            Game g4 = db.loadGame(4);
+            if (!"Fischer, Robert James".equals(g4.getHeader("White"))) {
+                throw new RuntimeException("Game 4 White mismatch: " + g4.getHeader("White"));
+            }
+            if (!"Spassky, Boris V".equals(g4.getHeader("Black"))) {
+                throw new RuntimeException("Game 4 Black mismatch: " + g4.getHeader("Black"));
+            }
+            int g4Plies = 0;
+            GameNode node4 = g4.getRootNode();
+            while (node4.hasChild()) {
+                node4 = node4.getVariation(0);
+                g4Plies++;
+            }
+            if (g4Plies != 81) {
+                throw new RuntimeException("Game 4 plies mismatch, expected 81, got: " + g4Plies);
+            }
+
+            // 3. Verify Game 13: Kramnik vs Anand (promotions)
+            Game g13 = db.loadGame(13);
+            if (!"Kramnik, Vladimir".equals(g13.getHeader("White"))) {
+                throw new RuntimeException("Game 13 White mismatch: " + g13.getHeader("White"));
+            }
+            boolean foundPromo = false;
+            GameNode node13 = g13.getRootNode();
+            while (node13.hasChild()) {
+                node13 = node13.getVariation(0);
+                if (node13.getMove() != null && node13.getMove().promotionPiece != 0) {
+                    foundPromo = true;
+                    break;
+                }
+            }
+            if (!foundPromo) {
+                throw new RuntimeException("Game 13 expected pawn promotion move");
+            }
+
+            // 4. Verify Game 19: Deep Blue vs Kasparov (Comments)
+            Game g19 = db.loadGame(19);
+            if (!index.get(19).getWhite().equals(g19.getHeader("White")) || !g19.getHeader("White").startsWith("Deep Blue")) {
+                throw new RuntimeException("Game 19 White mismatch: " + g19.getHeader("White"));
+            }
+            int commentCount = 0;
+            GameNode node19 = g19.getRootNode();
+            while (node19.hasChild()) {
+                node19 = node19.getVariation(0);
+                if (node19.getComment() != null && !node19.getComment().isEmpty()) {
+                    commentCount++;
+                }
+            }
+            if (commentCount != 5) {
+                throw new RuntimeException("Game 19 expected 5 comments, found: " + commentCount);
+            }
+
+            // 5. In-memory buffer test: modified game buffering
+            Scid5GameInfo scid0 = (Scid5GameInfo) index.get(0);
+            Game dummyGame = new Game();
+            dummyGame.setHeader("White", "Custom Player White");
+            dummyGame.setHeader("Black", "Custom Player Black");
+            scid0.setModifiedGame(dummyGame);
+            scid0.setModified(true);
+
+            Game loadedModified = db.loadGame(scid0);
+            if (!"Custom Player White".equals(loadedModified.getHeader("White"))) {
+                throw new RuntimeException("Expected in-memory modified game to be returned");
+            }
+
+            // Reset modified flag -> should reload original from disk
+            scid0.setModified(false);
+            scid0.setModifiedGame(null);
+            Game reloadedOriginal = db.loadGame(scid0);
+            if (!"Morphy, Paul".equals(reloadedOriginal.getHeader("White"))) {
+                throw new RuntimeException("Expected original game from disk after unsetting modified");
+            }
+
+            db.close();
+            System.out.println("testing loading games from SCID5 database ... pass");
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public void scid5RoundTripEncodeDecodeTest() {
+        try {
+            System.out.println("TEST: SCID5 round-trip encode and decode for all sample games");
+            String dbPath = getScidPath("sample_db.si5");
+            Scid5ChessDatabase db = new Scid5ChessDatabase();
+            db.open(dbPath);
+            db.scanGames();
+
+            ArrayList<GameInfo> index = db.getIndex();
+            PgnPrinter printer = new PgnPrinter();
+
+            for (int i = 0; i < index.size(); i++) {
+                Scid5GameInfo info = (Scid5GameInfo) index.get(i);
+                Game origGame = db.loadGame(info);
+
+                // 1. Encode game into SCID5 blob
+                Scid5EncodeResult enc = Scid5MoveEncoder.encode(origGame);
+                if (enc.data == null || enc.dataSize == 0) {
+                    throw new RuntimeException("Game " + i + " encoded blob is empty");
+                }
+
+                // Verify metadata matches index
+                if (enc.halfMoves != info.getHalfMoves()) {
+                    throw new RuntimeException("Game " + i + " halfMoves mismatch: expected "
+                            + info.getHalfMoves() + ", got " + enc.halfMoves);
+                }
+                if (enc.finalMatSig != info.getFinalMatSig()) {
+                    throw new RuntimeException(String.format(
+                            "Game %d finalMatSig mismatch: expected 0x%06X, got 0x%06X",
+                            i, info.getFinalMatSig(), enc.finalMatSig));
+                }
+                if (enc.homePawnCount != info.getHomePawnCount()) {
+                    throw new RuntimeException("Game " + i + " homePawnCount mismatch: expected "
+                            + info.getHomePawnCount() + ", got " + enc.homePawnCount);
+                }
+                if (!Arrays.equals(enc.homePawnData, info.getHomePawnData())) {
+                    throw new RuntimeException(String.format(
+                            "Game %d homePawnData mismatch", i));
+                }
+
+                // 2. Decode back into a new Game object
+                Game roundTripped = Scid5MoveDecoder.decode(enc.data, 0, enc.dataSize, info);
+
+                // 3. Compare original vs round-tripped PGN
+                String origPgn = printer.printGame(origGame);
+                String roundPgn = printer.printGame(roundTripped);
+
+                if (!comparePgnStrings(origPgn, roundPgn)) {
+                    throw new RuntimeException("Game " + i + " round-trip PGN mismatch!\nOriginal:\n"
+                            + origPgn + "\nRound-tripped:\n" + roundPgn);
+                }
+            }
+
+            // 4. Verify custom FEN starting position round-trip with promotions & sub-variations
+            String customPgn = "[Event \"Custom FEN Test\"]\n" +
+                    "[Site \"Test Site\"]\n" +
+                    "[Date \"2024.01.01\"]\n" +
+                    "[Round \"1\"]\n" +
+                    "[White \"Custom White\"]\n" +
+                    "[Black \"Custom Black\"]\n" +
+                    "[Result \"*\"]\n" +
+                    "[SetUp \"1\"]\n" +
+                    "[FEN \"8/P5k1/8/8/8/8/6K1/8 w - - 0 1\"]\n" +
+                    "\n" +
+                    "1. a8=Q ( 1. a8=N { underpromotion variation } 1... Kf6 ) 1... Kg6 { nice king move } *";
+
+            PgnReader reader = new PgnReader();
+            Game customGame = reader.readGame(customPgn);
+            Scid5EncodeResult encCustom = Scid5MoveEncoder.encode(customGame);
+
+            if ((encCustom.flags & Scid5GameInfo.FLAG_CUSTOM_START) == 0) {
+                throw new RuntimeException("Expected FLAG_CUSTOM_START to be set");
+            }
+            if ((encCustom.flags & Scid5GameInfo.FLAG_PROMO) == 0) {
+                throw new RuntimeException("Expected FLAG_PROMO to be set");
+            }
+            if ((encCustom.flags & Scid5GameInfo.FLAG_UNDER_PROMO) == 0) {
+                throw new RuntimeException("Expected FLAG_UNDER_PROMO to be set");
+            }
+
+            Scid5GameInfo customInfo = new Scid5GameInfo();
+            customInfo.setWhite("Custom White");
+            customInfo.setBlack("Custom Black");
+            customInfo.setEvent("Custom FEN Test");
+            customInfo.setSite("Test Site");
+            customInfo.setDate("2024.01.01");
+            customInfo.setRound("1");
+            customInfo.setResult("*");
+
+            Game roundTrippedCustom = Scid5MoveDecoder.decode(encCustom.data, 0, encCustom.dataSize, customInfo);
+            String origCustomPgn = printer.printGame(customGame);
+            String roundCustomPgn = printer.printGame(roundTrippedCustom);
+
+            if (!comparePgnStrings(origCustomPgn, roundCustomPgn)) {
+                throw new RuntimeException("Custom FEN game round-trip mismatch!\nOriginal:\n"
+                        + origCustomPgn + "\nRound-tripped:\n" + roundCustomPgn);
+            }
+
+            db.close();
+            System.out.println("testing SCID5 round-trip encode and decode ... pass");
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public void scid5WriteOperationsTest() {
+        System.out.println("TEST: SCID5 write operations (createNew, appendGame, replaceGame, deleteGame, persistence)");
+        Path tempDir;
+        try {
+            tempDir = Files.createTempDirectory("scid5_write_test_");
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        Path baseDb = tempDir.resolve("test_write_db");
+        String filename = baseDb.toString();
+
+        try {
+            Scid5ChessDatabase db = new Scid5ChessDatabase();
+            ArrayList<ChessDatabaseEvent> events = new ArrayList<>();
+            ChessDatabaseListener listener = events::add;
+            db.addListener(listener);
+
+            // 1. Test createNew
+            db.createNew(filename);
+            if (!db.isOpen()) {
+                throw new RuntimeException("Database should be open after createNew");
+            }
+            if (events.isEmpty() || events.get(events.size() - 1).getType() != ChessDatabaseEvent.Type.DATABASE_OPENED) {
+                throw new RuntimeException("Expected DATABASE_OPENED event");
+            }
+            if (!db.getIndex().isEmpty()) {
+                throw new RuntimeException("New database index should be empty");
+            }
+
+            Path si5 = Path.of(filename + ".si5");
+            Path sn5 = Path.of(filename + ".sn5");
+            Path sg5 = Path.of(filename + ".sg5");
+            if (!Files.exists(si5) || !Files.exists(sn5) || !Files.exists(sg5)) {
+                throw new RuntimeException("Companion files .si5, .sn5, .sg5 must exist on disk");
+            }
+
+            // 2. Append Game 1
+            Game g1 = new Game();
+            g1.setHeader("Event", "World Championship 1985");
+            g1.setHeader("Site", "Moscow RUS");
+            g1.setHeader("Date", "1985.11.09");
+            g1.setHeader("Round", "24");
+            g1.setHeader("White", "Kasparov, Garry");
+            g1.setHeader("Black", "Karpov, Anatoly");
+            g1.setHeader("Result", "1-0");
+            g1.setHeader("ECO", "B44");
+            g1.setHeader("WhiteElo", "2700");
+            g1.setHeader("BlackElo", "2720");
+            g1.getRootNode().setBoard(new Board(true));
+            g1.applyMove(new Move("e2e4"));
+            g1.applyMove(new Move("c7c5"));
+            g1.applyMove(new Move("g1f3"));
+            g1.applyMove(new Move("e7e6"));
+            g1.applyMove(new Move("d2d4"));
+            g1.applyMove(new Move("c5d4"));
+            g1.applyMove(new Move("f3d4"));
+            g1.applyMove(new Move("b8c6"));
+
+            GameInfo info1 = db.appendGame(g1);
+            if (info1 == null) {
+                throw new RuntimeException("appendGame returned null GameInfo");
+            }
+            if (db.getIndex().size() != 1) {
+                throw new RuntimeException("Expected 1 game after first append, got: " + db.getIndex().size());
+            }
+            if (events.get(events.size() - 1).getType() != ChessDatabaseEvent.Type.GAME_APPENDED) {
+                throw new RuntimeException("Expected GAME_APPENDED event");
+            }
+
+            // 3. Append Game 2
+            Game g2 = new Game();
+            g2.setHeader("Event", "World Championship 1960");
+            g2.setHeader("Site", "Moscow RUS");
+            g2.setHeader("Date", "1960.03.15");
+            g2.setHeader("Round", "6");
+            g2.setHeader("White", "Tal, Mihail");
+            g2.setHeader("Black", "Botvinnik, Mikhail");
+            g2.setHeader("Result", "1-0");
+            g2.setHeader("ECO", "C18");
+            g2.setHeader("WhiteElo", "2600");
+            g2.setHeader("BlackElo", "2650");
+            g2.getRootNode().setBoard(new Board(true));
+            g2.applyMove(new Move("e2e4"));
+            g2.applyMove(new Move("e7e6"));
+            g2.applyMove(new Move("d2d4"));
+            g2.applyMove(new Move("d7d5"));
+            g2.applyMove(new Move("b1c3"));
+            g2.applyMove(new Move("f8b4"));
+
+            GameInfo info2 = db.appendGame(g2);
+            if (info2 == null) {
+                throw new RuntimeException("appendGame returned null GameInfo for second game");
+            }
+            if (db.getIndex().size() != 2) {
+                throw new RuntimeException("Expected 2 games after second append, got: " + db.getIndex().size());
+            }
+
+            // Verify loaded games
+            Game loaded1 = db.loadGame(0);
+            if (!"Kasparov, Garry".equals(loaded1.getHeader("White")) || !"Karpov, Anatoly".equals(loaded1.getHeader("Black"))) {
+                throw new RuntimeException("Loaded game 1 player mismatch");
+            }
+            if (!"1-0".equals(loaded1.getHeader("Result")) || !"B44".equals(loaded1.getHeader("ECO"))) {
+                throw new RuntimeException("Loaded game 1 header mismatch");
+            }
+
+            Game loaded2 = db.loadGame(info2);
+            if (!"Tal, Mihail".equals(loaded2.getHeader("White")) || !"Botvinnik, Mikhail".equals(loaded2.getHeader("Black"))) {
+                throw new RuntimeException("Loaded game 2 player mismatch");
+            }
+
+            // 4. Test replaceGame: in-place overwrite branch (shorter game)
+            Game g1Small = new Game();
+            g1Small.setHeader("Event", "Short Game");
+            g1Small.setHeader("White", "Kasparov, Garry");
+            g1Small.setHeader("Black", "Karpov, Anatoly");
+            g1Small.setHeader("Result", "1/2-1/2");
+            g1Small.getRootNode().setBoard(new Board(true));
+            g1Small.applyMove(new Move("e2e4"));
+            g1Small.applyMove(new Move("e7e5"));
+
+            db.replaceGame(g1Small, info1);
+            if (events.get(events.size() - 1).getType() != ChessDatabaseEvent.Type.GAME_REPLACED) {
+                throw new RuntimeException("Expected GAME_REPLACED event for in-place replace");
+            }
+            Game loadedSmall = db.loadGame(0);
+            if (!"Short Game".equals(loadedSmall.getHeader("Event"))) {
+                throw new RuntimeException("In-place replace did not update Event header");
+            }
+
+            // 5. Test replaceGame: append branch (larger game exceeding original allocation)
+            Game g1Updated = new Game();
+            g1Updated.setHeader("Event", "World Championship 1985 Game 24 (Updated)");
+            g1Updated.setHeader("Site", "Moscow RUS");
+            g1Updated.setHeader("Date", "1985.11.09");
+            g1Updated.setHeader("Round", "24");
+            g1Updated.setHeader("White", "Kasparov, Garry");
+            g1Updated.setHeader("Black", "Karpov, Anatoly");
+            g1Updated.setHeader("Result", "1/2-1/2");
+            g1Updated.setHeader("ECO", "B44");
+            g1Updated.setHeader("WhiteElo", "2700");
+            g1Updated.setHeader("BlackElo", "2720");
+            g1Updated.getRootNode().setBoard(new Board(true));
+            g1Updated.applyMove(new Move("e2e4"));
+            g1Updated.applyMove(new Move("c7c5"));
+            g1Updated.applyMove(new Move("g1f3"));
+            g1Updated.applyMove(new Move("e7e6"));
+            g1Updated.applyMove(new Move("d2d4"));
+            g1Updated.applyMove(new Move("c5d4"));
+            g1Updated.applyMove(new Move("f3d4"));
+            g1Updated.applyMove(new Move("b8c6"));
+            g1Updated.applyMove(new Move("d4b5"));
+            g1Updated.applyMove(new Move("d7d6"));
+            g1Updated.applyMove(new Move("c2c4"));
+            g1Updated.applyMove(new Move("g8f6"));
+            GameNode lastNode = g1Updated.getEndNode();
+            lastNode.setComment("Sharp Paulsen variation");
+            lastNode.addNag(1);
+
+            db.replaceGame(g1Updated, info1);
+            if (events.get(events.size() - 1).getType() != ChessDatabaseEvent.Type.GAME_REPLACED) {
+                throw new RuntimeException("Expected GAME_REPLACED event for append replace");
+            }
+            Game loadedUpdated = db.loadGame(0);
+            if (!"World Championship 1985 Game 24 (Updated)".equals(loadedUpdated.getHeader("Event"))) {
+                throw new RuntimeException("Append replace did not update Event header");
+            }
+            if (!"1/2-1/2".equals(loadedUpdated.getHeader("Result"))) {
+                throw new RuntimeException("Append replace did not update Result");
+            }
+            GameNode endNode = loadedUpdated.getEndNode();
+            if (!"Sharp Paulsen variation".equals(endNode.getComment())) {
+                throw new RuntimeException("Append replace comment missing, got: " + endNode.getComment());
+            }
+            if (endNode.getNags().isEmpty() || endNode.getNags().get(0) != 1) {
+                throw new RuntimeException("Append replace NAG missing");
+            }
+
+            // 6. Test deleteGame
+            GameInfo currentInfo2 = db.getIndex().get(1);
+            db.deleteGame(currentInfo2);
+            if (events.get(events.size() - 1).getType() != ChessDatabaseEvent.Type.GAME_DELETED) {
+                throw new RuntimeException("Expected GAME_DELETED event");
+            }
+            if (db.getIndex().size() != 1) {
+                throw new RuntimeException("Expected 1 active game after delete, got: " + db.getIndex().size());
+            }
+            if (!"Kasparov, Garry".equals(db.getIndex().get(0).getWhite())) {
+                throw new RuntimeException("Remaining game should be Kasparov");
+            }
+            if (db.getAllEntries().size() != 2) {
+                throw new RuntimeException("allEntries should retain both physical records");
+            }
+            Scid5GameInfo deletedInfo = (Scid5GameInfo) db.getAllEntries().get(1);
+            if (!deletedInfo.isDeleted()) {
+                throw new RuntimeException("Physical record in allEntries must have isDeleted() == true");
+            }
+
+            // 7. Verify persistence across close and re-open
+            db.removeListener(listener);
+            db.close();
+            if (db.isOpen()) {
+                throw new RuntimeException("Database should be closed");
+            }
+
+            // Re-open via ChessDatabase.openDatabase factory method
+            ChessDatabase db2 = ChessDatabase.openDatabase(filename + ".si5");
+            if (!(db2 instanceof Scid5ChessDatabase scidDb2)) {
+                throw new RuntimeException("Factory openDatabase should return Scid5ChessDatabase instance");
+            }
+            scidDb2.scanGames();
+
+            if (scidDb2.getIndex().size() != 1) {
+                throw new RuntimeException("Re-opened database should have 1 active game, got: " + scidDb2.getIndex().size());
+            }
+            Game reloaded1 = scidDb2.loadGame(0);
+            if (!"World Championship 1985 Game 24 (Updated)".equals(reloaded1.getHeader("Event"))) {
+                throw new RuntimeException("Re-opened database game 0 Event header mismatch");
+            }
+            if (!"1/2-1/2".equals(reloaded1.getHeader("Result"))) {
+                throw new RuntimeException("Re-opened database game 0 Result mismatch");
+            }
+
+            // Check includeDeleted on reloaded database
+            scidDb2.setIncludeDeleted(true);
+            if (scidDb2.getIndex().size() != 2) {
+                throw new RuntimeException("Expected 2 games with includeDeleted=true, got: " + scidDb2.getIndex().size());
+            }
+            Scid5GameInfo reloadedDeleted = (Scid5GameInfo) scidDb2.getIndex().get(1);
+            if (!reloadedDeleted.isDeleted()) {
+                throw new RuntimeException("Deleted game on disk must have isDeleted() == true after scan");
+            }
+            scidDb2.close();
+
+            // Clean up temporary files
+            Files.deleteIfExists(si5);
+            Files.deleteIfExists(sn5);
+            Files.deleteIfExists(sg5);
+            Files.deleteIfExists(tempDir);
+
+            System.out.println("testing SCID5 write operations ... pass");
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public void scid5SearchTest() {
+        System.out.println("TEST: SCID5 search by header patterns and progress reporting");
+        String scidFile = getScidPath("sample_db.si5");
+        Scid5ChessDatabase db = new Scid5ChessDatabase();
+
+        try {
+            db.open(scidFile);
+            db.scanGames();
+
+            // 1. Search by Event: "Paris Opera"
+            SearchPattern eventPattern = new SearchPattern();
+            eventPattern.setEvent("Paris Opera");
+            db.search(eventPattern);
+
+            ArrayList<GameInfo> eventResults = db.getSearchResults();
+            if (eventResults.size() != 2 || !db.isSearchActive()) {
+                throw new RuntimeException("Expected 2 results for 'Paris Opera', got: " + eventResults.size());
+            }
+            for (GameInfo g : eventResults) {
+                if (!g.getEvent().contains("Paris Opera")) {
+                    throw new RuntimeException("Event search result mismatch: " + g.getEvent());
+                }
+            }
+
+            // 2. Search by Player with ignoreNameColor = true: "Kasparov"
+            SearchPattern kasparovPattern = new SearchPattern();
+            kasparovPattern.setWhiteName("Kasparov");
+            kasparovPattern.setIgnoreNameColor(true);
+            db.search(kasparovPattern);
+
+            ArrayList<GameInfo> kasparovResults = db.getSearchResults();
+            if (kasparovResults.isEmpty()) {
+                throw new RuntimeException("Expected at least 1 Kasparov game in sample_db");
+            }
+            for (GameInfo g : kasparovResults) {
+                boolean contains = g.getWhite().contains("Kasparov") || g.getBlack().contains("Kasparov");
+                if (!contains) {
+                    throw new RuntimeException("Result does not contain Kasparov: " + g.getVersusTitle());
+                }
+            }
+
+            // 3. Search by Result: draws only ("1/2-1/2")
+            SearchPattern drawPattern = new SearchPattern();
+            drawPattern.setResultWhiteWins(false);
+            drawPattern.setResultBlackWins(false);
+            drawPattern.setResultUndef(false);
+            drawPattern.setResultDraw(true);
+            db.search(drawPattern);
+
+            ArrayList<GameInfo> drawResults = db.getSearchResults();
+            if (drawResults.isEmpty()) {
+                throw new RuntimeException("Expected at least 1 draw game in sample_db");
+            }
+            for (GameInfo g : drawResults) {
+                if (!"1/2-1/2".equals(g.getResult())) {
+                    throw new RuntimeException("Result search expected '1/2-1/2', got: " + g.getResult());
+                }
+            }
+
+            // 4. Test ProgressListener and cancellation
+            boolean[] progressCalled = new boolean[]{false};
+            boolean[] cancelled = new boolean[]{false};
+            ProgressListener listener = new ProgressListener() {
+                @Override
+                public void onProgress(int percent) {
+                    progressCalled[0] = true;
+                }
+                @Override
+                public boolean isCancelled() {
+                    return cancelled[0];
+                }
+            };
+            db.search(eventPattern, listener);
+            if (!progressCalled[0]) {
+                throw new RuntimeException("ProgressListener onProgress was not invoked during search");
+            }
+
+            // Cancellation test
+            cancelled[0] = true;
+            db.search(eventPattern, listener);
+
+            // 5. Test resetSearch
+            db.resetSearch();
+            if (db.isSearchActive() || !db.getSearchResults().isEmpty()) {
+                throw new RuntimeException("resetSearch failed to clear active state and results");
+            }
+
+            db.close();
+            System.out.println("testing SCID5 search ... pass");
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
 }
 

@@ -21,6 +21,7 @@ package org.asdfjkl.jfxchess.lib;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Objects;
 
 public interface ChessDatabase {
 
@@ -78,5 +79,18 @@ public interface ChessDatabase {
 
     default int indexOf(GameInfo info) {
         return getIndex().indexOf(info);
+    }
+
+    static ChessDatabase openDatabase(String filename) throws IOException {
+        Objects.requireNonNull(filename, "filename");
+        if (filename.toLowerCase().endsWith(".pgn")) {
+            PgnChessDatabase db = new PgnChessDatabase();
+            db.open(filename);
+            return db;
+        } else {
+            Scid5ChessDatabase db = new Scid5ChessDatabase();
+            db.open(filename);
+            return db;
+        }
     }
 }
